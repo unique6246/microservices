@@ -3,7 +3,6 @@ package com.example.transactionservice.service;
 import com.example.transactionservice.Repo.TransactionRepository;
 import com.example.transactionservice.dto.*;
 import com.example.transactionservice.entity.Transaction;
-import com.example.transactionservice.feignconfig.AccountClient;
 import com.example.transactionservice.feignconfig.AccountServiceClient;
 import com.example.transactionservice.feignconfig.CustomerServiceClient;
 import com.example.transactionservice.feignconfig.NotificationServiceClient;
