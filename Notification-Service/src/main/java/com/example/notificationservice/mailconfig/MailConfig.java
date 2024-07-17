@@ -1,4 +1,4 @@
-package com.example.notificationservice.feignconfig;
+package com.example.notificationservice.mailconfig;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,8 +16,8 @@ public class MailConfig {
         mailSender.setHost("smtp.example.com");
         mailSender.setPort(587);
 
-        mailSender.setUsername("your-email@example.com");
-        mailSender.setPassword("your-email-password");
+        mailSender.setUsername("praveenwppe@gmail.com");
+        mailSender.setPassword("Pintu@1234");
 
         Properties props = mailSender.getJavaMailProperties();
         props.put("mail.transport.protocol", "smtp");

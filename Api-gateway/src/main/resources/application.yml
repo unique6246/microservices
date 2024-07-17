@@ -33,6 +33,12 @@ spring:
           filters:
             - StripPrefix=1
 
+        - id: NOTIFICATION-SERVICE
+          uri: lb://NOTIFICATION-SERVICE
+          predicates:
+            - Path=/notifications/**
+          filters:
+            - StripPrefix=1
 eureka:
   instance:
     hostname: localhost
