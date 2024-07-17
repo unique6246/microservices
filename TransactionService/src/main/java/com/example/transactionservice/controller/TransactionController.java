@@ -1,5 +1,6 @@
 package com.example.transactionservice.controller;
 
+import com.example.transactionservice.dto.TransferDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +28,12 @@ public class TransactionController {
     @PostMapping
     public ResponseEntity<String> createTransaction(@RequestBody TransactionDTO transactionDTO) {
         transactionService.createTransaction(transactionDTO);
-        return ResponseEntity.ok("Transaction created successfully\n"+transactionDTO);
+        return ResponseEntity.ok("Transaction created successfully\n" + transactionDTO);
+    }
+
+    @PostMapping("/transfer")
+    public ResponseEntity<String> transfer(@RequestBody TransferDTO transferDTO) {
+        transactionService.transfer(transferDTO);
+        return ResponseEntity.ok("Transfer completed successfully");
     }
 }

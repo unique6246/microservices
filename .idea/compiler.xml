@@ -7,10 +7,12 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <module name="Notification-Service" />
         <module name="Api-gateway" />
         <module name="Accountservices" />
         <module name="TransactionService" />
         <module name="Eureka-server" />
+        <module name="Notification-Service" />
         <module name="CoustomerServices" />
       </profile>
     </annotationProcessing>
@@ -25,6 +27,7 @@
       <module name="Config-service" options="-parameters" />
       <module name="CoustomerServices" options="-parameters" />
       <module name="Eureka-server" options="-parameters" />
+      <module name="Notification-Service" options="-parameters" />
       <module name="TransactionService" options="-parameters" />
     </option>
   </component>

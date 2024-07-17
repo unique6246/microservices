@@ -6,6 +6,7 @@
     <file url="file://$PROJECT_DIR$/Config-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/CoustomerServices/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/Eureka-server/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Notification-Service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/TransactionService/src/main/java" charset="UTF-8" />
   </component>
 </project>

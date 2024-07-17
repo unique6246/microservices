@@ -8,6 +8,6 @@ public class AccountDTO {
     private String accountNumber;
     private String accountType;
     private double balance;
-
+    private long customerId;
     // Getters and Setters
 }

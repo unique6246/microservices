@@ -1,4 +1,4 @@
-package com.example.transactionservice.entity;
+package com.example.notificationservice.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -8,14 +8,11 @@ import lombok.Data;
 
 @Entity
 @Data
-public class Transaction {
+public class Notification {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String accountNumber;
-    private double amount;
-    private String transactionType; // "credit" or "debit"
-    private Long accountId;
-
-    // Getters and Setters
+    private String to;
+    private String subject;
+    private String body;
 }

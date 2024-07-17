@@ -1,6 +1,7 @@
 package com.example.accountservices.controller;
 
 import com.example.accountservices.dto.AccountDTO;
+import com.example.accountservices.dto.UpdateBalanceDTO;
 import com.example.accountservices.service.AccountService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -29,7 +30,7 @@ public class AccountController {
     @PostMapping
     public ResponseEntity<String> createAccount(@RequestBody AccountDTO accountDTO) {
         accountService.createAccount(accountDTO);
-        return ResponseEntity.ok("Account created successfully\n"+accountDTO);
+        return ResponseEntity.ok("Account created successfully\n" + accountDTO);
     }
 
     @DeleteMapping("/{id}")
