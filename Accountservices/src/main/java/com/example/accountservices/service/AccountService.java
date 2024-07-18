@@ -46,25 +46,21 @@ public class AccountService {
 
     public void createAccount(AccountDTO accountDTO) {
 
-        if(accountRepository.existsAccountByAccountNumber(accountDTO.getAccountNumber())){
-            throw new AccountAlreadyExists("Account with account number '"+accountDTO.getAccountNumber()+"' already exists.");
-        }
         Account account = new Account();
-        account.setAccountNumber(AccountUtils.generateAccountNumber());
+        String accNum=AccountUtils.generateAccountNumber();
+        account.setAccountNumber(accNum);
         account.setAccountType(accountDTO.getAccountType());
         account.setBalance(accountDTO.getBalance());
         account.setCustomerId(accountDTO.getCustomerId());
-        account = accountRepository.save(account);
 
         // Send notification to customer
         CustomerDTO customerDTO = customerServiceClient.getCustomerById(accountDTO.getCustomerId());
         NotificationDTO notificationDTO = new NotificationDTO();
         notificationDTO.setReceiver(customerDTO.getEmail());
         notificationDTO.setSubject("New Account Created");
-        notificationDTO.setBody("Dear " + customerDTO.getName() + ",\n\nYour new account with account number " + accountDTO.getAccountNumber() + " has been created successfully.");
+        notificationDTO.setBody("Dear " + customerDTO.getName() + ",\n\nYour new account with account number " + accNum + " has been created successfully.");
         notificationServiceClient.sendNotification(notificationDTO);
-
-        convertToDTO(account);
+        accountRepository.save(account);
     }
 
     public void updateBalance(AccountDTO accountDTO) {

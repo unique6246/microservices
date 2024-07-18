@@ -1,5 +1,6 @@
 package com.example.accountservices.controller;
 
+import com.example.accountservices.Repo.AccountRepository;
 import com.example.accountservices.dto.AccountDTO;
 import com.example.accountservices.service.AccountService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,9 @@ public class AccountController {
     @Autowired
     private AccountService accountService;
 
+    @Autowired
+    private AccountRepository accountRepository;
+
     @GetMapping
     public ResponseEntity<List<AccountDTO>> getAllAccounts() {
         return ResponseEntity.ok(accountService.getAllAccounts());
@@ -26,6 +30,7 @@ public class AccountController {
         return accountDTO != null ? ResponseEntity.ok(accountDTO) : ResponseEntity.notFound().build();
     }
 
+    //for transaction only
     @GetMapping("customer/{id}")
     public ResponseEntity<AccountDTO> getAccountByCustomerId(@PathVariable Long id)
     {
@@ -41,10 +46,14 @@ public class AccountController {
 
     @PostMapping
     public ResponseEntity<String> createAccount(@RequestBody AccountDTO accountDTO) {
+        if(accountRepository.existsAccountByAccountNumber(accountDTO.getAccountNumber())){
+            return ResponseEntity.ok("Account already exists");
+        }
         accountService.createAccount(accountDTO);
-        return ResponseEntity.ok("Account created successfully\n" + accountDTO);
+        return ResponseEntity.ok("Account created successfully\n");
     }
 
+    //used during transaction
     @PutMapping("/update-balance")
     public void updateBalance(@RequestBody AccountDTO accountDTO) {
         accountService.updateBalance(accountDTO);

@@ -1,7 +1,7 @@
 package com.example.coustomerservices.controller;
 
+import com.example.coustomerservices.Repo.CustomerRepository;
 import com.example.coustomerservices.dto.CustomerDTO;
-import com.example.coustomerservices.dto.NotificationDTO;
 import com.example.coustomerservices.feignconfig.NotificationServiceClient;
 import com.example.coustomerservices.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +17,7 @@ public class CustomerController {
     private CustomerService customerService;
 
     @Autowired
-    private NotificationServiceClient notificationServiceClient;
+    private CustomerRepository customerRepository;
 
     @GetMapping
     public ResponseEntity<List<CustomerDTO>> getAllCustomers() {
@@ -32,15 +32,10 @@ public class CustomerController {
 
     @PostMapping
     public ResponseEntity<String> createCustomer(@RequestBody CustomerDTO customerDTO) {
+        if (customerRepository.existsCustomerByEmail(customerDTO.getEmail())) {
+            return ResponseEntity.ok("Customer with email " + customerDTO.getEmail() + " already exists use different email.");
+        }
         customerService.createCustomer(customerDTO);
-
-        // Send email notification
-        NotificationDTO notificationDTO = new NotificationDTO();
-        notificationDTO.setReceiver(customerDTO.getEmail());
-        notificationDTO.setSubject("Welcome to our Bank");
-        notificationDTO.setBody("Dear " + customerDTO.getName() + ",\n\nYour account has been created successfully.");
-        notificationServiceClient.sendNotification(notificationDTO);
-
         return ResponseEntity.ok("Customer created successfully\n" + customerDTO);
     }
 

@@ -50,7 +50,6 @@ public class TransactionService {
         //finding customer by account number
         AccountDTO debitAccount =accountServiceClient.getAccountByAccountNumber(transferDTO.getFromAccount());
         debitAccount.setBalance(debitAccount.getBalance()-debitTransaction.getAmount());
-        accountServiceClient.updateBalance(debitAccount);
         CustomerDTO debitCustomer=customerServiceClient.getCustomerById(debitAccount.getCustomerId());
 
         //sending notification to sender
@@ -61,6 +60,7 @@ public class TransactionService {
             " has been " + debitTransaction.getTransactionType().toLowerCase() +
             "ed from your account:"+debitAccount.getAccountNumber()+
             ".\n Account Balance: "+debitAccount.getBalance());
+        accountServiceClient.updateBalance(debitAccount);
         notificationServiceClient.sendNotification(notificationSenderDTO);
         transactionRepository.save(debitTransaction);
 
@@ -73,7 +73,6 @@ public class TransactionService {
         //finding customer by account number
         AccountDTO creditAccount =accountServiceClient.getAccountByAccountNumber(transferDTO.getToAccount());
         creditAccount.setBalance(creditAccount.getBalance()+creditTransaction.getAmount());
-        accountServiceClient.updateBalance(creditAccount);
         CustomerDTO creditCustomer=customerServiceClient.getCustomerById(creditAccount.getCustomerId());
 
         //sending notification to receiver
@@ -84,6 +83,7 @@ public class TransactionService {
             " has been "+creditTransaction.getTransactionType().toLowerCase()+"ed"+
             " to your account:"+creditAccount.getAccountNumber()+
             ".\nAccount Balance:"+creditAccount.getBalance());
+        accountServiceClient.updateBalance(creditAccount);
         notificationServiceClient.sendNotification(notificationReceiverDTO);
         transactionRepository.save(creditTransaction);
     }
