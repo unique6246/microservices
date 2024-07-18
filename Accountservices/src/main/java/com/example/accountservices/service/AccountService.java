@@ -35,19 +35,13 @@ public class AccountService {
         return account != null ? convertToDTO(account) : null;
     }
 
-    public List<Account> getAccountsByCustomerId(Long id) {
-        List<Account> accountDTOS=  accountRepository.findAccountsByCustomerId(id);
-        return accountDTOS;
-    }
     public AccountDTO getAccountByCustomerId(Long id) {
         Account account=  accountRepository.findAccountByCustomerId(id);
-        AccountDTO accountDTO = convertToDTO(account);
-        return accountDTO;
+        return convertToDTO(account);
     }
     public AccountDTO getAccountByAccountNumber(String accountNumber) {
         Account account=  accountRepository.findAccountByAccountNumber(accountNumber);
-        AccountDTO accountDTO =convertToDTO(account);
-        return accountDTO;
+        return convertToDTO(account);
     }
 
     public void createAccount(AccountDTO accountDTO) {

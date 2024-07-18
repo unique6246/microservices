@@ -1,7 +1,6 @@
 package com.example.accountservices.controller;
 
 import com.example.accountservices.dto.AccountDTO;
-import com.example.accountservices.entity.Account;
 import com.example.accountservices.service.AccountService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -27,11 +26,6 @@ public class AccountController {
         return accountDTO != null ? ResponseEntity.ok(accountDTO) : ResponseEntity.notFound().build();
     }
 
-//    @GetMapping("customer/accounts/{id}")
-//    public ResponseEntity<List<Account>> getAccountsByCustomerId(@PathVariable Long id)
-//    {
-//        return ResponseEntity.ok(accountService.getAccountsByCustomerId(id));
-//    }
     @GetMapping("customer/{id}")
     public ResponseEntity<AccountDTO> getAccountByCustomerId(@PathVariable Long id)
     {
