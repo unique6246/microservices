@@ -2,7 +2,6 @@ package com.example.coustomerservices.controller;
 
 import com.example.coustomerservices.Repo.CustomerRepository;
 import com.example.coustomerservices.dto.CustomerDTO;
-import com.example.coustomerservices.feignconfig.NotificationServiceClient;
 import com.example.coustomerservices.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
