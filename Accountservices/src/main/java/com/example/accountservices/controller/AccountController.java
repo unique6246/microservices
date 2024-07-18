@@ -1,7 +1,7 @@
 package com.example.accountservices.controller;
 
 import com.example.accountservices.dto.AccountDTO;
-import com.example.accountservices.dto.UpdateBalanceDTO;
+import com.example.accountservices.entity.Account;
 import com.example.accountservices.service.AccountService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -27,10 +27,33 @@ public class AccountController {
         return accountDTO != null ? ResponseEntity.ok(accountDTO) : ResponseEntity.notFound().build();
     }
 
+//    @GetMapping("customer/accounts/{id}")
+//    public ResponseEntity<List<Account>> getAccountsByCustomerId(@PathVariable Long id)
+//    {
+//        return ResponseEntity.ok(accountService.getAccountsByCustomerId(id));
+//    }
+    @GetMapping("customer/{id}")
+    public ResponseEntity<AccountDTO> getAccountByCustomerId(@PathVariable Long id)
+    {
+        return ResponseEntity.ok(accountService.getAccountByCustomerId(id));
+    }
+
+    @GetMapping("account/{accountNumber}")
+    public ResponseEntity<AccountDTO> getAccountByAccountNumber(@PathVariable String accountNumber)
+    {
+        return ResponseEntity.ok(accountService.getAccountByAccountNumber(accountNumber));
+    }
+
+
     @PostMapping
     public ResponseEntity<String> createAccount(@RequestBody AccountDTO accountDTO) {
         accountService.createAccount(accountDTO);
         return ResponseEntity.ok("Account created successfully\n" + accountDTO);
+    }
+
+    @PutMapping("/update-balance")
+    public void updateBalance(@RequestBody AccountDTO accountDTO) {
+        accountService.updateBalance(accountDTO);
     }
 
     @DeleteMapping("/{id}")

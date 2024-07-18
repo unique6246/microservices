@@ -3,21 +3,28 @@ package com.example.notificationservice.controller;
 import com.example.notificationservice.dto.NotificationDTO;
 import com.example.notificationservice.service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
 import org.springframework.web.bind.annotation.*;
 
-
 @RestController
-@RequestMapping("/notifications")
 public class NotificationController {
 
     @Autowired
     private NotificationService notificationService;
 
-    @PostMapping("/send")
+    @PostMapping("notifications/send")
     public ResponseEntity<String> sendNotification(@RequestBody NotificationDTO notificationDTO) {
-        notificationService.sendNotification(notificationDTO);
-        return ResponseEntity.ok("Notification sent successfully");
+        // Simulating notification sending logic
+        try {
+            notificationService.sendNotification(notificationDTO);
+
+            System.out.println("Sending notification to: " + notificationDTO.getReceiver());
+            return ResponseEntity.ok("Notification sent successfully");
+        } catch (Exception e) {
+            // Log the exception
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to send notification");
+        }
     }
 }

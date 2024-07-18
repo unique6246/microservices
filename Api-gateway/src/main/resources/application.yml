@@ -1,6 +1,20 @@
 server:
   port: 8080
 
+zuul:
+  routes:
+    customers:
+      path: /customers/**
+      serviceId: CUSTOMER-SERVICE
+    accounts:
+      path: /accounts/**
+      serviceId: ACCOUNT-SERVICE
+    transactions:
+      path: /transactions/**
+      serviceId: TRANSACTION-SERVICE
+    notifications:
+      path: /notifications/**
+      serviceId: NOTIFICATION-SERVICE
 
 spring:
   cloud:

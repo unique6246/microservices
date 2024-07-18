@@ -35,44 +35,57 @@ public class TransactionService {
         return transactionRepository.findByAccountNumber(accountNumber).stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
-    public TransactionDTO createTransaction(TransactionDTO transactionDTO) {
-        Transaction transaction = new Transaction();
-        transaction.setAccountNumber(transactionDTO.getAccountNumber());
-        transaction.setAmount(transactionDTO.getAmount());
-        transaction.setTransactionType(transactionDTO.getTransactionType());
-        transaction = transactionRepository.save(transaction);
-
-        // Update account balance
-        UpdateBalanceDTO updateBalanceDTO = new UpdateBalanceDTO();
-        updateBalanceDTO.setAccountNumber(transactionDTO.getAccountNumber());
-        updateBalanceDTO.setAmount(transactionDTO.getTransactionType().equals("DEBIT") ? -transactionDTO.getAmount() : transactionDTO.getAmount());
-        accountServiceClient.updateBalance(updateBalanceDTO);
-
-        // Send notification
-        CustomerDTO customerDTO = customerServiceClient.getCustomerByAccountNumber(transactionDTO.getAccountNumber());
-        NotificationDTO notificationDTO = new NotificationDTO();
-        notificationDTO.setTo(customerDTO.getEmail());
-        notificationDTO.setSubject("Transaction Alert");
-        notificationDTO.setBody("A transaction of " + transactionDTO.getAmount() + " has been " + transactionDTO.getTransactionType() + "ed from your account.");
-        notificationServiceClient.sendNotification(notificationDTO);
-
-        return convertToDTO(transaction);
+    public List<TransactionDTO> getTransactionsByTransactionType(String transactionType) {
+        return transactionRepository.findTransactionsByTransactionType(transactionType).stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
     public void transfer(TransferDTO transferDTO) {
         // Debit sender's account
-        TransactionDTO debitTransaction = new TransactionDTO();
+        Transaction debitTransaction = new Transaction();
+
         debitTransaction.setAccountNumber(transferDTO.getFromAccount());
         debitTransaction.setAmount(transferDTO.getAmount());
         debitTransaction.setTransactionType("DEBIT");
-        createTransaction(debitTransaction);
+
+        //finding customer by account number
+        AccountDTO debitAccount =accountServiceClient.getAccountByAccountNumber(transferDTO.getFromAccount());
+        debitAccount.setBalance(debitAccount.getBalance()-debitTransaction.getAmount());
+        accountServiceClient.updateBalance(debitAccount);
+        CustomerDTO debitCustomer=customerServiceClient.getCustomerById(debitAccount.getCustomerId());
+
+        //sending notification to sender
+        NotificationDTO notificationSenderDTO = new NotificationDTO();
+        notificationSenderDTO.setReceiver(debitCustomer.getEmail());
+        notificationSenderDTO.setSubject("Debit Transaction Alert");
+        notificationSenderDTO.setBody("A transaction of " + debitTransaction.getAmount() +
+            " has been " + debitTransaction.getTransactionType().toLowerCase() +
+            "ed from your account:"+debitAccount.getAccountNumber()+
+            ".\n Account Balance: "+debitAccount.getBalance());
+        notificationServiceClient.sendNotification(notificationSenderDTO);
+        transactionRepository.save(debitTransaction);
 
         // Credit receiver's account
-        TransactionDTO creditTransaction = new TransactionDTO();
+        Transaction creditTransaction = new Transaction();
         creditTransaction.setAccountNumber(transferDTO.getToAccount());
         creditTransaction.setAmount(transferDTO.getAmount());
         creditTransaction.setTransactionType("CREDIT");
-        createTransaction(creditTransaction);
+
+        //finding customer by account number
+        AccountDTO creditAccount =accountServiceClient.getAccountByAccountNumber(transferDTO.getToAccount());
+        creditAccount.setBalance(creditAccount.getBalance()+creditTransaction.getAmount());
+        accountServiceClient.updateBalance(creditAccount);
+        CustomerDTO creditCustomer=customerServiceClient.getCustomerById(creditAccount.getCustomerId());
+
+        //sending notification to receiver
+        NotificationDTO notificationReceiverDTO = new NotificationDTO();
+        notificationReceiverDTO.setReceiver(creditCustomer.getEmail());
+        notificationReceiverDTO.setSubject("Credit Transaction Alert");
+        notificationReceiverDTO.setBody("A transaction of "+creditTransaction.getAmount()+
+            " has been "+creditTransaction.getTransactionType().toLowerCase()+"ed"+
+            " to your account:"+creditAccount.getAccountNumber()+
+            ".\nAccount Balance:"+creditAccount.getBalance());
+        notificationServiceClient.sendNotification(notificationReceiverDTO);
+        transactionRepository.save(creditTransaction);
     }
 
     private TransactionDTO convertToDTO(Transaction transaction) {

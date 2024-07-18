@@ -7,6 +7,5 @@ public class TransferDTO {
     private String fromAccount;
     private String toAccount;
     private double amount;
-
-
 }
+

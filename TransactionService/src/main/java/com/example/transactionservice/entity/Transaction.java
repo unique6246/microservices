@@ -15,7 +15,6 @@ public class Transaction {
     private String accountNumber;
     private double amount;
     private String transactionType; // "credit" or "debit"
-    private Long accountId;
 
     // Getters and Setters
 }

@@ -24,12 +24,17 @@ public class CustomerService {
         return customer != null ? convertToDTO(customer) : null;
     }
 
-    public CustomerDTO createCustomer(CustomerDTO customerDTO) {
+    public void createCustomer(CustomerDTO customerDTO) {
+        // Check if the customer already exists by email
+        if (customerRepository.existsCustomerByEmail(customerDTO.getEmail())) {
+            throw new CustomerAlreadyExistsException("Customer with email " + customerDTO.getEmail() + " already exists use different email.");
+        }
+
+        // Create and save the new customer
         Customer customer = new Customer();
         customer.setName(customerDTO.getName());
         customer.setEmail(customerDTO.getEmail());
-        customer = customerRepository.save(customer);
-        return convertToDTO(customer);
+        customerRepository.save(customer);
     }
 
     public void deleteCustomer(Long id) {
@@ -38,7 +43,6 @@ public class CustomerService {
 
     private CustomerDTO convertToDTO(Customer customer) {
         CustomerDTO customerDTO = new CustomerDTO();
-        customerDTO.setId(customer.getId());
         customerDTO.setName(customer.getName());
         customerDTO.setEmail(customer.getEmail());
         return customerDTO;

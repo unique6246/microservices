@@ -36,7 +36,7 @@ public class CustomerController {
 
         // Send email notification
         NotificationDTO notificationDTO = new NotificationDTO();
-        notificationDTO.setTo(customerDTO.getEmail());
+        notificationDTO.setReceiver(customerDTO.getEmail());
         notificationDTO.setSubject("Welcome to our Bank");
         notificationDTO.setBody("Dear " + customerDTO.getName() + ",\n\nYour account has been created successfully.");
         notificationServiceClient.sendNotification(notificationDTO);

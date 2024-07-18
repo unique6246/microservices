@@ -25,10 +25,9 @@ public class TransactionController {
         return ResponseEntity.ok(transactionService.getTransactionsByAccountNumber(accountNumber));
     }
 
-    @PostMapping
-    public ResponseEntity<String> createTransaction(@RequestBody TransactionDTO transactionDTO) {
-        transactionService.createTransaction(transactionDTO);
-        return ResponseEntity.ok("Transaction created successfully\n" + transactionDTO);
+    @GetMapping("/transaction/{transactionType}")
+    public ResponseEntity<List<TransactionDTO>> getTransactionsByTransactionType(@PathVariable String transactionType) {
+        return ResponseEntity.ok(transactionService.getTransactionsByTransactionType(transactionType));
     }
 
     @PostMapping("/transfer")

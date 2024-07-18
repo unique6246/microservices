@@ -5,6 +5,7 @@ import com.example.accountservices.dto.AccountDTO;
 import com.example.accountservices.dto.CustomerDTO;
 import com.example.accountservices.dto.NotificationDTO;
 import com.example.accountservices.entity.Account;
+import com.example.accountservices.entity.AccountUtils;
 import com.example.accountservices.feignconfig.CustomerServiceClient;
 import com.example.accountservices.feignconfig.NotificationServiceClient;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,22 +35,48 @@ public class AccountService {
         return account != null ? convertToDTO(account) : null;
     }
 
-    public AccountDTO createAccount(AccountDTO accountDTO) {
+    public List<Account> getAccountsByCustomerId(Long id) {
+        List<Account> accountDTOS=  accountRepository.findAccountsByCustomerId(id);
+        return accountDTOS;
+    }
+    public AccountDTO getAccountByCustomerId(Long id) {
+        Account account=  accountRepository.findAccountByCustomerId(id);
+        AccountDTO accountDTO = convertToDTO(account);
+        return accountDTO;
+    }
+    public AccountDTO getAccountByAccountNumber(String accountNumber) {
+        Account account=  accountRepository.findAccountByAccountNumber(accountNumber);
+        AccountDTO accountDTO =convertToDTO(account);
+        return accountDTO;
+    }
+
+    public void createAccount(AccountDTO accountDTO) {
+
+        if(accountRepository.existsAccountByAccountNumber(accountDTO.getAccountNumber())){
+            throw new AccountAlreadyExists("Account with account number '"+accountDTO.getAccountNumber()+"' already exists.");
+        }
         Account account = new Account();
-        account.setAccountNumber(accountDTO.getAccountNumber());
+        account.setAccountNumber(AccountUtils.generateAccountNumber());
         account.setAccountType(accountDTO.getAccountType());
         account.setBalance(accountDTO.getBalance());
+        account.setCustomerId(accountDTO.getCustomerId());
         account = accountRepository.save(account);
 
         // Send notification to customer
         CustomerDTO customerDTO = customerServiceClient.getCustomerById(accountDTO.getCustomerId());
         NotificationDTO notificationDTO = new NotificationDTO();
-        notificationDTO.setTo(customerDTO.getEmail());
+        notificationDTO.setReceiver(customerDTO.getEmail());
         notificationDTO.setSubject("New Account Created");
         notificationDTO.setBody("Dear " + customerDTO.getName() + ",\n\nYour new account with account number " + accountDTO.getAccountNumber() + " has been created successfully.");
         notificationServiceClient.sendNotification(notificationDTO);
 
-        return convertToDTO(account);
+        convertToDTO(account);
+    }
+
+    public void updateBalance(AccountDTO accountDTO) {
+        Account account = accountRepository.findAccountByAccountNumber(accountDTO.getAccountNumber());
+        account.setBalance(accountDTO.getBalance());
+        accountRepository.save(account);
     }
 
     public void deleteAccount(Long id) {

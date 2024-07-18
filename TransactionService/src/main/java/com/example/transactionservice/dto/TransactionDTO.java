@@ -8,7 +8,7 @@ public class TransactionDTO {
     private String accountNumber;
     private double amount;
     private String transactionType;
-    private Long accountId;
+
 
     // Getters and Setters
 }

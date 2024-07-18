@@ -12,7 +12,7 @@ public class Notification {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String to;
+    private String receiver;
     private String subject;
     private String body;
 }
