@@ -15,24 +15,28 @@ public class TransactionController {
     @Autowired
     private TransactionService transactionService;
 
+    //all transaction
     @GetMapping
     public ResponseEntity<List<TransactionDTO>> getAllTransactions() {
         return ResponseEntity.ok(transactionService.getAllTransactions());
     }
 
+    //transaction by account number
     @GetMapping("/account/{accountNumber}")
     public ResponseEntity<List<TransactionDTO>> getTransactionsByAccountNumber(@PathVariable String accountNumber) {
         return ResponseEntity.ok(transactionService.getTransactionsByAccountNumber(accountNumber));
     }
 
+    //transaction by account type
     @GetMapping("/transaction/{transactionType}")
     public ResponseEntity<List<TransactionDTO>> getTransactionsByTransactionType(@PathVariable String transactionType) {
         return ResponseEntity.ok(transactionService.getTransactionsByTransactionType(transactionType));
     }
 
+    //transaction between users
     @PostMapping("/transfer")
     public ResponseEntity<String> transfer(@RequestBody TransferDTO transferDTO) {
-        transactionService.transfer(transferDTO);
-        return ResponseEntity.ok("Transfer completed successfully");
+        String message=transactionService.transfer(transferDTO);
+        return ResponseEntity.ok(message);
     }
 }

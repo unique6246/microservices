@@ -27,19 +27,23 @@ public class TransactionService {
     @Autowired
     private CustomerServiceClient customerServiceClient;
 
+    //all transaction
     public List<TransactionDTO> getAllTransactions() {
         return transactionRepository.findAll().stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
+    //transaction by account number
     public List<TransactionDTO> getTransactionsByAccountNumber(String accountNumber) {
         return transactionRepository.findByAccountNumber(accountNumber).stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
+    //transaction by transaction type
     public List<TransactionDTO> getTransactionsByTransactionType(String transactionType) {
         return transactionRepository.findTransactionsByTransactionType(transactionType).stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
-    public void transfer(TransferDTO transferDTO) {
+    //transaction between accounts
+    public String transfer(TransferDTO transferDTO) {
         // Debit sender's account
         Transaction debitTransaction = new Transaction();
 
@@ -49,17 +53,26 @@ public class TransactionService {
 
         //finding customer by account number
         AccountDTO debitAccount =accountServiceClient.getAccountByAccountNumber(transferDTO.getFromAccount());
+
+        //checking for sufficient balance for a transaction
+        if(debitAccount.getBalance()<=0 || debitTransaction.getAmount()>debitAccount.getBalance()) {
+            return "Your dont have sufficient funds for a transaction please check the balance";
+        }
+
+        //set update balance
         debitAccount.setBalance(debitAccount.getBalance()-debitTransaction.getAmount());
         CustomerDTO debitCustomer=customerServiceClient.getCustomerById(debitAccount.getCustomerId());
 
-        //sending notification to sender
+        //notification sending to sender
         NotificationDTO notificationSenderDTO = new NotificationDTO();
         notificationSenderDTO.setReceiver(debitCustomer.getEmail());
         notificationSenderDTO.setSubject("Debit Transaction Alert");
         notificationSenderDTO.setBody("A transaction of " + debitTransaction.getAmount() +
             " has been " + debitTransaction.getTransactionType().toLowerCase() +
             "ed from your account:"+debitAccount.getAccountNumber()+
-            ".\n Account Balance: "+debitAccount.getBalance());
+            ".\nAccount Balance: "+debitAccount.getBalance());
+
+        //update balance, send notification, save transaction
         accountServiceClient.updateBalance(debitAccount);
         notificationServiceClient.sendNotification(notificationSenderDTO);
         transactionRepository.save(debitTransaction);
@@ -72,6 +85,8 @@ public class TransactionService {
 
         //finding customer by account number
         AccountDTO creditAccount =accountServiceClient.getAccountByAccountNumber(transferDTO.getToAccount());
+
+        //set update balance
         creditAccount.setBalance(creditAccount.getBalance()+creditTransaction.getAmount());
         CustomerDTO creditCustomer=customerServiceClient.getCustomerById(creditAccount.getCustomerId());
 
@@ -83,9 +98,12 @@ public class TransactionService {
             " has been "+creditTransaction.getTransactionType().toLowerCase()+"ed"+
             " to your account:"+creditAccount.getAccountNumber()+
             ".\nAccount Balance:"+creditAccount.getBalance());
+
+        //update balance, send notification, save transaction
         accountServiceClient.updateBalance(creditAccount);
         notificationServiceClient.sendNotification(notificationReceiverDTO);
         transactionRepository.save(creditTransaction);
+        return "Transaction successfully completed";
     }
 
     private TransactionDTO convertToDTO(Transaction transaction) {

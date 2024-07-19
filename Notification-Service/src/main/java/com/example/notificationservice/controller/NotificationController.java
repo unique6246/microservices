@@ -13,16 +13,19 @@ public class NotificationController {
     @Autowired
     private NotificationService notificationService;
 
+    //notification send
     @PostMapping("notifications/send")
     public ResponseEntity<String> sendNotification(@RequestBody NotificationDTO notificationDTO) {
+
         // Simulating notification sending logic
         try {
-            notificationService.sendNotification(notificationDTO);
-
+            String message=notificationService.sendNotification(notificationDTO);
             System.out.println("Sending notification to: " + notificationDTO.getReceiver());
-            return ResponseEntity.ok("Notification sent successfully");
-        } catch (Exception e) {
-            // Log the exception
+            return ResponseEntity.ok(message);
+        }
+
+        // Log the exceptionm
+        catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to send notification");
         }

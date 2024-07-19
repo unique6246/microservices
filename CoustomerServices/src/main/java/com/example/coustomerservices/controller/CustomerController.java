@@ -18,29 +18,30 @@ public class CustomerController {
     @Autowired
     private CustomerRepository customerRepository;
 
+    //all customers
     @GetMapping
     public ResponseEntity<List<CustomerDTO>> getAllCustomers() {
         return ResponseEntity.ok(customerService.getAllCustomers());
     }
 
+    //customer by id
     @GetMapping("/{id}")
     public ResponseEntity<CustomerDTO> getCustomerById(@PathVariable Long id) {
         CustomerDTO customerDTO = customerService.getCustomerById(id);
         return customerDTO != null ? ResponseEntity.ok(customerDTO) : ResponseEntity.notFound().build();
     }
 
+    //customer creation
     @PostMapping
     public ResponseEntity<String> createCustomer(@RequestBody CustomerDTO customerDTO) {
-        if (customerRepository.existsCustomerByEmail(customerDTO.getEmail())) {
-            return ResponseEntity.ok("Customer with email " + customerDTO.getEmail() + " already exists use different email.");
-        }
-        customerService.createCustomer(customerDTO);
-        return ResponseEntity.ok("Customer created successfully\n" + customerDTO);
+        String message=customerService.createCustomer(customerDTO);
+        return ResponseEntity.ok(message);
     }
 
+    //customer deletion
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteCustomer(@PathVariable Long id) {
-        customerService.deleteCustomer(id);
-        return ResponseEntity.ok("Customer deleted successfully");
+        String message=customerService.deleteCustomer(id);
+        return ResponseEntity.ok(message);
     }
 }

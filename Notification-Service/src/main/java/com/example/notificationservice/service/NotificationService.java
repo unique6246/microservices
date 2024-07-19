@@ -9,29 +9,48 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+
 @Service
 public class NotificationService {
 
     @Autowired
     private JavaMailSender mailSender;
 
-    @Value("$spring.mail.username")
+    @Value("${spring.mail.username}")
     private String fromEmail;
 
     @Autowired
     private NotificationRepository notificationRepository;
 
-    public void sendNotification(NotificationDTO notificationDTO) {
+    //format checking
+    private static final String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
+
+    //valid email checking
+    private boolean isValidEmailFormat(String email) {
+        Pattern pattern = Pattern.compile(EMAIL_REGEX);
+        Matcher matcher = pattern.matcher(email);
+        return matcher.matches();
+    }
+
+    //notification sending
+    public String sendNotification(NotificationDTO notificationDTO) {
+        if (!isValidEmailFormat(notificationDTO.getReceiver())) {
+            return "Invalid email format please check the email.";
+        }
+
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);
         message.setTo(notificationDTO.getReceiver());
         message.setSubject(notificationDTO.getSubject());
         message.setText(notificationDTO.getBody());
         mailSender.send(message);
-
         saveNotification(notificationDTO);
+        return "Your notification has been sent successfully.";
     }
 
+    //save notification
     private void saveNotification(NotificationDTO notificationDTO) {
         Notification notification = new Notification();
         notification.setReceiver(notificationDTO.getReceiver());
