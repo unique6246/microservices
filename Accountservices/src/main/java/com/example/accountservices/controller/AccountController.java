@@ -16,9 +16,6 @@ public class AccountController {
     @Autowired
     private AccountService accountService;
 
-    @Autowired
-    private AccountRepository accountRepository;
-
     //all accountsx
     @GetMapping
     public ResponseEntity<List<AccountDTO>> getAllAccounts() {

@@ -15,9 +15,6 @@ public class CustomerController {
     @Autowired
     private CustomerService customerService;
 
-    @Autowired
-    private CustomerRepository customerRepository;
-
     //all customers
     @GetMapping
     public ResponseEntity<List<CustomerDTO>> getAllCustomers() {

@@ -9,7 +9,6 @@ import com.example.accountservices.entity.AccountUtils;
 import com.example.accountservices.feignconfig.CustomerServiceClient;
 import com.example.accountservices.feignconfig.NotificationServiceClient;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
