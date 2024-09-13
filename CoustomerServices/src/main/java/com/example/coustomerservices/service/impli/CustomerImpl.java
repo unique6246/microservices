@@ -2,7 +2,6 @@ package com.example.coustomerservices.service.impli;
 
 import com.example.coustomerservices.dto.BankDto;
 import com.example.coustomerservices.dto.CustomerDTO;
-import com.example.coustomerservices.entity.Customer;
 
 import java.util.List;
 
