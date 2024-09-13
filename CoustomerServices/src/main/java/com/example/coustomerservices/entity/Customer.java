@@ -29,8 +29,6 @@ public class Customer {
     private String address;
     private String phoneNumber;
     private String email;
-    private String accountNumber;
-    private BigDecimal balance;
     @CreationTimestamp
     private LocalDateTime createdAt;
     @UpdateTimestamp

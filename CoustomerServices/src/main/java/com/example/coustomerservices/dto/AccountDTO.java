@@ -1,6 +1,5 @@
-package com.example.accountservices.entity;
+package com.example.coustomerservices.dto;
 
-import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -8,17 +7,12 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-@Entity
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 @Builder
-@Table(name = "Accounts")
-public class Account {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    @Column(unique = true, nullable = false)
+@AllArgsConstructor
+@NoArgsConstructor
+public class AccountDTO {
+
     private String accountNumber;
     private String accountType;
     private BigDecimal balance;

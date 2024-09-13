@@ -1,16 +1,16 @@
 package com.example.accountservices.service;
 
 import com.example.accountservices.Repo.AccountRepository;
-import com.example.accountservices.dto.AccountDTO;
-import com.example.accountservices.dto.CustomerDTO;
-import com.example.accountservices.dto.NotificationDTO;
+import com.example.accountservices.dto.*;
 import com.example.accountservices.entity.Account;
 import com.example.accountservices.entity.AccountUtils;
 import com.example.accountservices.feignconfig.CustomerServiceClient;
 import com.example.accountservices.feignconfig.NotificationServiceClient;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,8 +39,15 @@ public class AccountService {
 
     //account by customer id
     public AccountDTO getAccountByCustomerId(Long id) {
-        Account account=  accountRepository.findAccountByCustomerId(id);
-        return convertToDTO(account);
+        if(accountRepository.existsAccountByCustomerId(id)) {
+            Account account=  accountRepository.findAccountByCustomerId(id);
+            return convertToDTO(account);
+        }
+        return AccountDTO.builder()
+                .accountNumber(null)
+                .balance(BigDecimal.ZERO)
+                .accountType(null)
+                .build();
     }
 
     //account by account number
@@ -50,59 +57,82 @@ public class AccountService {
     }
 
     //account creation
-    public String createAccount(AccountDTO accountDTO) {
+    public BankDto createAccount(AccountDTO accountDTO) {
 
-        Account account = new Account();
-        String accNum=AccountUtils.generateAccountNumber();
-
-        //account already exists
-        if(accountRepository.existsAccountByAccountNumber(accNum)){
-            return "Account already exists try again.";
+        if(accountRepository.existsAccountByAccountNumber(accountDTO.getAccountNumber())) {
+            return BankDto.builder()
+                    .responseCode(AccountUtils.ACCOUNT_EXISTS_CODE)
+                    .responseMessage(AccountUtils.ACCOUNT_EXISTS_MESSAGE)
+                    .accountInfo(AccountInfo.builder()
+                            .accountNumber(accountDTO.getAccountNumber())
+                            .build())
+                    .build();
         }
-        account.setAccountNumber(accNum);
-        account.setAccountType(accountDTO.getAccountType());
-        account.setBalance(accountDTO.getBalance());
-        account.setCustomerId(accountDTO.getCustomerId());
+        Account newCustomer=Account.builder()
+                .accountNumber(AccountUtils.generateAccountNumber())
+                .accountType(accountDTO.getAccountType())
+                .balance(BigDecimal.ZERO)
+                .customerId(accountDTO.getCustomerId())
+                .build();
 
-        // Send notification to customer
-        CustomerDTO customerDTO = customerServiceClient.getCustomerById(accountDTO.getCustomerId());
-        sendNotification(customerDTO,accNum);
+        accountRepository.save(newCustomer);
 
-        accountRepository.save(account);
-        return "Account created successfully";
-    }
+        CustomerDTO customerDTO=customerServiceClient.getCustomerById(newCustomer.getCustomerId());
 
-    private void sendNotification(CustomerDTO customerDTO, String accNum) {
-        NotificationDTO notificationDTO = new NotificationDTO();
-        notificationDTO.setReceiver(customerDTO.getEmail());
-        notificationDTO.setSubject("New Account Created");
-        notificationDTO.setBody("Dear " + customerDTO.getName() + ",\n\nYour new account with account number " + accNum + " has been created successfully.");
-        notificationServiceClient.sendNotification(notificationDTO);
-    }
 
-    //update balance
-    public void updateBalance(AccountDTO accountDTO) {
-        Account account = accountRepository.findAccountByAccountNumber(accountDTO.getAccountNumber());
-        account.setBalance(accountDTO.getBalance());
-        accountRepository.save(account);
+        notificationServiceClient.sendNotification(NotificationDTO.builder()
+                .receiver(customerDTO.getEmail())
+                .subject("Welcome to our Bank")
+                .body("Response Code = "+AccountUtils.ACCOUNT_CREATION_CODE+"\n\n"+
+                        "Response Message = "+AccountUtils.ACCOUNT_CREATION_MESSAGE+"\n\n"+
+                        "Account Details = Account Number:"+newCustomer.getAccountNumber()+", "
+                        +"Account Balance: "+newCustomer.getBalance()
+                )
+                .build());
+
+        return BankDto.builder()
+                .responseCode(AccountUtils.ACCOUNT_CREATION_CODE)
+                .responseMessage(AccountUtils.ACCOUNT_CREATION_MESSAGE)
+                .accountInfo(AccountInfo.builder()
+                        .accountBalance(newCustomer.getBalance())
+                        .accountNumber(newCustomer.getAccountNumber())
+                        .accountName(customerDTO.getFirstName()+" "+customerDTO.getLastName())
+                        .build())
+                .build();
     }
 
     //account deletion
-    public String deleteAccount(Long id) {
-        if(!accountRepository.existsById(id)){
-            return "Account does not exist.";
+    @Transactional
+    public BankDto deleteAccount(String accountNumber) {
+        if(!accountRepository.existsAccountByAccountNumber(accountNumber)) {
+            return BankDto.builder()
+                    .responseCode(AccountUtils.ACCOUNT_NOT_EXISTS_CODE)
+                    .responseMessage(AccountUtils.ACCOUNT_NOT_EXISTS_MESSAGE)
+                    .accountInfo(null)
+                    .build();
         }
-        Account account=accountRepository.findAccountById(id);
-        CustomerDTO customerDTO = customerServiceClient.getCustomerById(account.getCustomerId());
-        sendNotification(customerDTO,account.getAccountNumber());
-        accountRepository.deleteById(id);
+        Account account = accountRepository.findAccountByAccountNumber(accountNumber);
+        accountRepository.deleteAccountByAccountNumber(accountNumber);
+        CustomerDTO customerDTO=customerServiceClient.getCustomerById(account.getCustomerId());
 
-        return "Account deleted successfully";
+        notificationServiceClient.sendNotification(NotificationDTO.builder()
+                .receiver(customerDTO.getEmail())
+                .subject("Account Deletion")
+                .body(  "Response Code = "+AccountUtils.ACCOUNT_DELETION_CODE+"\n\n"+
+                        "Response Message = "+AccountUtils.ACCOUNT_DELETION_MESSAGE+"\n\n"+
+                        "Account Details = Account Number:"+account.getAccountNumber()+", " +"Account Balance: "+account.getBalance()
+                )
+                .build());
+
+        return BankDto.builder()
+                .responseCode(AccountUtils.ACCOUNT_DELETION_CODE)
+                .responseMessage(AccountUtils.ACCOUNT_DELETION_MESSAGE)
+                .accountInfo(null)
+                .build();
     }
 
     private AccountDTO convertToDTO(Account account) {
         AccountDTO accountDTO = new AccountDTO();
-        accountDTO.setId(account.getId());
         accountDTO.setAccountType(account.getAccountType());
         accountDTO.setAccountNumber(account.getAccountNumber());
         accountDTO.setBalance(account.getBalance());

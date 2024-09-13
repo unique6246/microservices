@@ -1,4 +1,4 @@
-package com.example.coustomerservices.dto;
+package com.example.accountservices.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,6 +11,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class BankDto {
     private String responseCode;
-    private String responseMessage;
+    private String  responseMessage;
     private AccountInfo accountInfo;
 }
