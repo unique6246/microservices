@@ -9,10 +9,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class NotificationDTO {
-    private String receiver;
-    private String subject;
-    private String body;
-
-
+public class BankDto {
+    private String responseCode;
+    private String  responseMessage;
+    private AccountInfo accountInfo;
 }

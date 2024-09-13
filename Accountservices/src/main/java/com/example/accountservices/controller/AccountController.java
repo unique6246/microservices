@@ -16,7 +16,7 @@ public class AccountController {
     @Autowired
     private AccountService accountService;
 
-    //all accountsx
+    //all accounts
     @GetMapping
     public ResponseEntity<List<AccountDTO>> getAllAccounts() {
         return ResponseEntity.ok(accountService.getAllAccounts());
@@ -35,6 +35,7 @@ public class AccountController {
     {
         return ResponseEntity.ok(accountService.getAccountByCustomerId(id));
     }
+
     //account by account number
     @GetMapping("account/{accountNumber}")
     public ResponseEntity<AccountDTO> getAccountByAccountNumber(@PathVariable String accountNumber)

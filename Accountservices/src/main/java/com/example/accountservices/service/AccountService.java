@@ -54,6 +54,7 @@ public class AccountService {
 
         Account account = new Account();
         String accNum=AccountUtils.generateAccountNumber();
+
         //account already exists
         if(accountRepository.existsAccountByAccountNumber(accNum)){
             return "Account already exists try again.";
@@ -65,13 +66,18 @@ public class AccountService {
 
         // Send notification to customer
         CustomerDTO customerDTO = customerServiceClient.getCustomerById(accountDTO.getCustomerId());
+        sendNotification(customerDTO,accNum);
+
+        accountRepository.save(account);
+        return "Account created successfully";
+    }
+
+    private void sendNotification(CustomerDTO customerDTO, String accNum) {
         NotificationDTO notificationDTO = new NotificationDTO();
         notificationDTO.setReceiver(customerDTO.getEmail());
         notificationDTO.setSubject("New Account Created");
         notificationDTO.setBody("Dear " + customerDTO.getName() + ",\n\nYour new account with account number " + accNum + " has been created successfully.");
         notificationServiceClient.sendNotification(notificationDTO);
-        accountRepository.save(account);
-        return "Account created successfully";
     }
 
     //update balance
@@ -86,7 +92,11 @@ public class AccountService {
         if(!accountRepository.existsById(id)){
             return "Account does not exist.";
         }
+        Account account=accountRepository.findAccountById(id);
+        CustomerDTO customerDTO = customerServiceClient.getCustomerById(account.getCustomerId());
+        sendNotification(customerDTO,account.getAccountNumber());
         accountRepository.deleteById(id);
+
         return "Account deleted successfully";
     }
 

@@ -1,8 +1,8 @@
 package com.example.coustomerservices.controller;
 
-import com.example.coustomerservices.Repo.CustomerRepository;
+import com.example.coustomerservices.dto.BankDto;
 import com.example.coustomerservices.dto.CustomerDTO;
-import com.example.coustomerservices.service.CustomerService;
+import com.example.coustomerservices.service.CustomerServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,7 +13,7 @@ import java.util.List;
 public class CustomerController {
 
     @Autowired
-    private CustomerService customerService;
+    private CustomerServiceImpl customerService;
 
     //all customers
     @GetMapping
@@ -30,15 +30,13 @@ public class CustomerController {
 
     //customer creation
     @PostMapping
-    public ResponseEntity<String> createCustomer(@RequestBody CustomerDTO customerDTO) {
-        String message=customerService.createCustomer(customerDTO);
-        return ResponseEntity.ok(message);
+    public BankDto createCustomer(@RequestBody CustomerDTO customerDTO) {
+        return customerService.createAccount(customerDTO);
     }
 
     //customer deletion
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteCustomer(@PathVariable Long id) {
-        String message=customerService.deleteCustomer(id);
-        return ResponseEntity.ok(message);
+    public BankDto deleteCustomer(@PathVariable Long id) {
+        return customerService.deleteCustomer(id);
     }
 }

@@ -5,14 +5,14 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class NotificationDTO {
-    private String receiver;
-    private String subject;
-    private String body;
-
-
+public class AccountInfo {
+    private String accountName;
+    private String accountNumber;
+    private BigDecimal accountBalance;
 }
