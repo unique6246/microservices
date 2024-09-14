@@ -6,8 +6,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AccountRepository extends JpaRepository<Account, Long> {
     Account findAccountByCustomerId(long customerId);
-    Account findAccountByAccountNumber(String accountNumber);
+    Account findByAccountNumber(String accountNumber);
     Boolean existsAccountByCustomerId(long customerId);
     Boolean existsAccountByAccountNumber(String accountNumber);
     void deleteAccountByAccountNumber(String accountNumber);
+
+    Account findAccountByAccountNumber(String accountNumber);
 }

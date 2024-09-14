@@ -1,4 +1,4 @@
-package com.example.accountservices.entity;
+package com.example.accountservices.accountUtils;
 
 import java.time.Year;
 
@@ -13,7 +13,7 @@ public class AccountUtils {
     public static final String ACCOUNT_CREATION_CODE = "012";
     public static final String ACCOUNT_CREATION_MESSAGE = "ACCOUNT IS SUCCESSFULLY CREATED";
 
-    public static final String ACCOUNT_DELETION_CODE = "020";
+    public static final String ACCOUNT_DELETION_CODE = "019";
     public static final String ACCOUNT_DELETION_MESSAGE = "ACCOUNT DELETED SUCCESSFULLY";
 
     public static String generateAccountNumber() {

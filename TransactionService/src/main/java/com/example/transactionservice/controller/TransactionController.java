@@ -1,11 +1,13 @@
 package com.example.transactionservice.controller;
 
+import com.example.transactionservice.dto.BankDto;
 import com.example.transactionservice.dto.TransferDTO;
+import com.example.transactionservice.service.TransactionServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.example.transactionservice.dto.TransactionDTO;
-import com.example.transactionservice.service.TransactionService;
+
 import java.util.List;
 
 @RestController
@@ -13,7 +15,7 @@ import java.util.List;
 public class TransactionController {
 
     @Autowired
-    private TransactionService transactionService;
+    private TransactionServiceImpl transactionService;
 
     //all transaction
     @GetMapping
@@ -33,10 +35,21 @@ public class TransactionController {
         return ResponseEntity.ok(transactionService.getTransactionsByTransactionType(transactionType));
     }
 
+    //debit transaction
+    @PostMapping("/debit-transfer")
+    public BankDto debitTransfer(@RequestBody TransactionDTO transactionDTO) {
+        return transactionService.debitTransaction(transactionDTO);
+    }
+
+    //credit transaction
+    @PostMapping("/credit-transfer")
+    public BankDto creditTransfer(@RequestBody TransactionDTO transactionDTO) {
+        return transactionService.creditTransaction(transactionDTO);
+    }
+
     //transaction between users
     @PostMapping("/transfer")
-    public ResponseEntity<String> transfer(@RequestBody TransferDTO transferDTO) {
-        String message=transactionService.transfer(transferDTO);
-        return ResponseEntity.ok(message);
+    public BankDto transfer(@RequestBody TransferDTO transferDTO) {
+        return transactionService.transferBetweenUsers(transferDTO);
     }
 }

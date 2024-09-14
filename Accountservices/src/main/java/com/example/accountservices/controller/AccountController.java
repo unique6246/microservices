@@ -47,6 +47,11 @@ public class AccountController {
         return accountService.createAccount(accountDTO);
     }
 
+    @PutMapping("/update")
+    public String saveAccount(@RequestBody AccountDTO accountDTO) {
+        return accountService.saveAccount(accountDTO.getAccountNumber(), accountDTO.getBalance());
+    }
+
     //account deletion
     @DeleteMapping("/{accountNumber}")
     public BankDto deleteAccount(@PathVariable String accountNumber) {

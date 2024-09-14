@@ -11,7 +11,7 @@ public class CustomerUtils {
     public static final String CUSTOMER_CREATION_CODE = "002";
     public static final String CUSTOMER_CREATION_MESSAGE = "CUSTOMER IS SUCCESSFULLY CREATED";
 
-    public static final String CUSTOMER_DELETION_CODE = "010";
+    public static final String CUSTOMER_DELETION_CODE = "009";
     public static final String CUSTOMER_DELETION_MESSAGE = "CUSTOMER DELETED SUCCESSFULLY";
 
 

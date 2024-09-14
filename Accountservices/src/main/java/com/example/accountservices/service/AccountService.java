@@ -3,7 +3,7 @@ package com.example.accountservices.service;
 import com.example.accountservices.Repo.AccountRepository;
 import com.example.accountservices.dto.*;
 import com.example.accountservices.entity.Account;
-import com.example.accountservices.entity.AccountUtils;
+import com.example.accountservices.accountUtils.AccountUtils;
 import com.example.accountservices.feignconfig.CustomerServiceClient;
 import com.example.accountservices.feignconfig.NotificationServiceClient;
 import jakarta.transaction.Transactional;
@@ -129,6 +129,14 @@ public class AccountService {
                 .responseMessage(AccountUtils.ACCOUNT_DELETION_MESSAGE)
                 .accountInfo(null)
                 .build();
+    }
+
+    public String saveAccount(String accountNumber, BigDecimal balance) {
+        Account account = accountRepository.findAccountByAccountNumber(accountNumber);
+        account.setBalance(balance);
+        accountRepository.save(account);
+        return "updated";
+
     }
 
     private AccountDTO convertToDTO(Account account) {
