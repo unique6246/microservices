@@ -83,7 +83,6 @@ public class TransactionServiceImpl implements TransactionService {
             senderAccount.setBalance(senderAccount.getBalance().subtract(transferDTO.getAmount()));
             recipientAccount.setBalance(recipientAccount.getBalance().add(transferDTO.getAmount()));
 
-
             processTransaction(senderAccount, "DEBIT", transferDTO.getAmount(), "sent to " + recipientAccount.getAccountNumber());
             processTransaction(recipientAccount, "CREDIT", transferDTO.getAmount(), "received from " + senderAccount.getAccountNumber());
 

@@ -27,98 +27,92 @@ public class CustomerServiceImpl implements CustomerImpl {
     private AccountServiceClient accountServiceClient;
 
 
-    private CustomerDTO convertToDTO(Customer customer) {
-        CustomerDTO customerDTO = new CustomerDTO();
-        customerDTO.setFirstName(customer.getFirstName());
-        customerDTO.setLastName(customer.getLastName());
-        customerDTO.setGender(customer.getGender());
-        customerDTO.setAddress(customer.getAddress());
-        customerDTO.setPhoneNumber(customer.getPhoneNumber());
-        customerDTO.setEmail(customer.getEmail());
-        return customerDTO;
-    }
 
     @Override
     public List<CustomerDTO> getAllCustomers() {
-        return customerRepository.findAll().stream().map(this::convertToDTO).collect(Collectors.toList());
+        return customerRepository.findAll().stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
     public CustomerDTO getCustomerById(Long id) {
-        Customer customer = customerRepository.findById(id).orElse(null);
-        return customer != null ? convertToDTO(customer) : null;
+        return customerRepository.findById(id).map(this::convertToDTO).orElse(null);
     }
 
     @Transactional
     public BankDto deleteCustomer(Long id) {
-        if(!customerRepository.existsById(id)) {
-            return BankDto.builder()
-                    .responseCode(CustomerUtils.CUSTOMER_NOT_EXISTS_CODE)
-                    .responseMessage(CustomerUtils.CUSTOMER_NOT_EXISTS_MESSAGE)
-                    .accountInfo(null)
-                    .build();
+        if (!customerRepository.existsById(id)) {
+            return buildResponse(CustomerUtils.CUSTOMER_NOT_EXISTS_CODE, CustomerUtils.CUSTOMER_NOT_EXISTS_MESSAGE, null, null);
         }
+
         Customer customer = customerRepository.findCustomerById(id);
-        customerRepository.deleteCustomerById(id);
-        AccountDTO accountDTO=accountServiceClient.getAccountByCustomerId(customer.getId());
+        AccountDTO accountDTO = accountServiceClient.getAccountByCustomerId(customer.getId());
+
         accountServiceClient.deleteAccount(accountDTO.getAccountNumber());
-        notificationServiceClient.sendNotification(NotificationDTO.builder()
-                .receiver(customer.getEmail())
-                .subject("Customer Account Deletion")
-                .body(  "Response Code = "+ CustomerUtils.CUSTOMER_DELETION_CODE+"\n\n"+
-                        "Response Message = "+ CustomerUtils.CUSTOMER_DELETION_MESSAGE+"\n\n"+
-                        "Account Details = Account Number:"+accountDTO.getAccountNumber()+", " +"Account Balance: "+accountDTO.getBalance()
-                )
-                .build());
+        sendNotification(customer.getEmail(), "Customer Account Deletion",
+                "Response Code = " + CustomerUtils.CUSTOMER_DELETION_CODE + "\n\n" +
+                        "Response Message = " + CustomerUtils.CUSTOMER_DELETION_MESSAGE + "\n\n" +
+                        "Account Details = Account Number:" + accountDTO.getAccountNumber() +
+                        ", Account Balance: " + accountDTO.getBalance());
 
-        return BankDto.builder()
-                .responseCode(CustomerUtils.CUSTOMER_DELETION_CODE)
-                .responseMessage(CustomerUtils.CUSTOMER_DELETION_MESSAGE)
-                .accountInfo(AccountInfo.builder()
-                        .accountNumber(accountDTO.getAccountNumber())
-                        .accountBalance(accountDTO.getBalance())
-                        .accountName(customer.getFirstName()+" "+customer.getLastName())
-                        .build())
-                .build();
+        customerRepository.deleteCustomerById(id);
+
+        return buildResponse(CustomerUtils.CUSTOMER_DELETION_CODE, CustomerUtils.CUSTOMER_DELETION_MESSAGE, accountDTO, customer);
     }
-
 
     @Override
     public BankDto createAccount(CustomerDTO customerDTO) {
-
-        if(customerRepository.existsByEmail(customerDTO.getEmail())) {
-
-            return BankDto.builder()
-                    .responseCode(CustomerUtils.CUSTOMER_EXISTS_CODE)
-                    .responseMessage(CustomerUtils.CUSTOMER_EXISTS_MESSAGE)
-                    .accountInfo(null)
-                    .build();
+        if (customerRepository.existsByEmail(customerDTO.getEmail())) {
+            return buildResponse(CustomerUtils.CUSTOMER_EXISTS_CODE, CustomerUtils.CUSTOMER_EXISTS_MESSAGE, null, null);
         }
-        Customer newCustomer=Customer.builder()
+
+        Customer newCustomer = customerRepository.save(Customer.builder()
                 .firstName(customerDTO.getFirstName())
                 .lastName(customerDTO.getLastName())
                 .gender(customerDTO.getGender())
                 .address(customerDTO.getAddress())
                 .phoneNumber(customerDTO.getPhoneNumber())
                 .email(customerDTO.getEmail())
-                .build();
-
-        customerRepository.save(newCustomer);
-
-        notificationServiceClient.sendNotification(NotificationDTO.builder()
-                        .receiver(newCustomer.getEmail())
-                        .subject("Welcome to our Bank")
-                        .body("Response Code = "+ CustomerUtils.CUSTOMER_CREATION_CODE+"\n\n"+
-                                "Response Message = "+ CustomerUtils.CUSTOMER_CREATION_MESSAGE+"\n\n")
                 .build());
 
+        sendNotification(newCustomer.getEmail(), "Welcome to our Bank",
+                "Response Code = " + CustomerUtils.CUSTOMER_CREATION_CODE + "\n\n" +
+                        "Response Message = " + CustomerUtils.CUSTOMER_CREATION_MESSAGE);
+
+        return buildResponse(CustomerUtils.CUSTOMER_CREATION_CODE, CustomerUtils.CUSTOMER_CREATION_MESSAGE, null, newCustomer);
+    }
+
+    // Helper method for sending notifications
+    private void sendNotification(String receiver, String subject, String body) {
+        notificationServiceClient.sendNotification(NotificationDTO.builder()
+                .receiver(receiver)
+                .subject(subject)
+                .body(body)
+                .build());
+    }
+
+    // Helper method for building BankDto response
+    private BankDto buildResponse(String code, String message, AccountDTO accountDTO, Customer customer) {
         return BankDto.builder()
-                .responseCode(CustomerUtils.CUSTOMER_CREATION_CODE)
-                .responseMessage(CustomerUtils.CUSTOMER_CREATION_MESSAGE)
-                .accountInfo(AccountInfo.builder()
-                        .accountName(newCustomer.getFirstName()+" "+newCustomer.getLastName())
-                        .build())
+                .responseCode(code)
+                .responseMessage(message)
+                .accountInfo(accountDTO != null ? AccountInfo.builder()
+                        .accountNumber(accountDTO.getAccountNumber())
+                        .accountBalance(accountDTO.getBalance())
+                        .accountName(customer.getFirstName() + " " + customer.getLastName())
+                        .build() : null)
                 .build();
     }
 
-
+    // Convert Customer to DTO
+    private CustomerDTO convertToDTO(Customer customer) {
+        return CustomerDTO.builder()
+                .firstName(customer.getFirstName())
+                .lastName(customer.getLastName())
+                .gender(customer.getGender())
+                .address(customer.getAddress())
+                .phoneNumber(customer.getPhoneNumber())
+                .email(customer.getEmail())
+                .build();
+    }
 }
