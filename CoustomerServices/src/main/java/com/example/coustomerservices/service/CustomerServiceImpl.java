@@ -8,7 +8,9 @@ import com.example.coustomerservices.feignconfig.AccountServiceClient;
 import com.example.coustomerservices.feignconfig.NotificationServiceClient;
 import com.example.coustomerservices.service.impli.CustomerImpl;
 import jakarta.transaction.Transactional;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,6 +20,15 @@ import java.util.stream.Collectors;
 public class CustomerServiceImpl implements CustomerImpl {
 
     @Autowired
+    public RabbitTemplate rabbitTemplate;
+
+    @Value("${account.exchange.name}")
+    private String EXCHANGE_NAME;
+
+    @Value("${account.routing.json.key}")
+    private String JSON_ROUTING_KEY;
+
+    @Autowired
     private CustomerRepository customerRepository;
 
     @Autowired
@@ -25,8 +36,6 @@ public class CustomerServiceImpl implements CustomerImpl {
 
     @Autowired
     private AccountServiceClient accountServiceClient;
-
-
 
     @Override
     public List<CustomerDTO> getAllCustomers() {
@@ -47,13 +56,23 @@ public class CustomerServiceImpl implements CustomerImpl {
 
         Customer customer = customerRepository.findCustomerById(id);
         AccountDTO accountDTO = accountServiceClient.getAccountByCustomerId(customer.getId());
+        if(accountDTO != null) {
+            accountServiceClient.deleteAccount(accountDTO.getAccountNumber());
 
-        accountServiceClient.deleteAccount(accountDTO.getAccountNumber());
-        sendNotification(customer.getEmail(), "Customer Account Deletion",
-                "Response Code = " + CustomerUtils.CUSTOMER_DELETION_CODE + "\n\n" +
-                        "Response Message = " + CustomerUtils.CUSTOMER_DELETION_MESSAGE + "\n\n" +
-                        "Account Details = Account Number:" + accountDTO.getAccountNumber() +
-                        ", Account Balance: " + accountDTO.getBalance());
+        }
+        rabbitTemplate.convertAndSend(EXCHANGE_NAME, JSON_ROUTING_KEY, NotificationDTO.builder()
+                .receiver(customer.getEmail())
+                .subject("Customer Account Deletion")
+                .body(buildCustomerMessage(accountDTO))
+                .build());
+
+
+        //sending mail using synchronous communication
+//        sendNotification(customer.getEmail(), "Customer Account Deletion",
+//                "Response Code = " + CustomerUtils.CUSTOMER_DELETION_CODE + "\n\n" +
+//                        "Response Message = " + CustomerUtils.CUSTOMER_DELETION_MESSAGE + "\n\n" +
+//                        "Account Details = Account Number:" + accountDTO.getAccountNumber() +
+//                        ", Account Balance: " + accountDTO.getBalance());
 
         customerRepository.deleteCustomerById(id);
 
@@ -75,20 +94,34 @@ public class CustomerServiceImpl implements CustomerImpl {
                 .email(customerDTO.getEmail())
                 .build());
 
-        sendNotification(newCustomer.getEmail(), "Welcome to our Bank",
-                "Response Code = " + CustomerUtils.CUSTOMER_CREATION_CODE + "\n\n" +
-                        "Response Message = " + CustomerUtils.CUSTOMER_CREATION_MESSAGE);
+        rabbitTemplate.convertAndSend(EXCHANGE_NAME, JSON_ROUTING_KEY, NotificationDTO.builder()
+                .receiver(newCustomer.getEmail())
+                .subject("Welcome to our Bank")
+                .body(buildCustomerMessage())
+                .build());
+
+        //sending mail using synchronous communication
+//        sendNotification(newCustomer.getEmail(), "Welcome to our Bank",
+//                "Response Code = " + CustomerUtils.CUSTOMER_CREATION_CODE + "\n\n" +
+//                        "Response Message = " + CustomerUtils.CUSTOMER_CREATION_MESSAGE);
 
         return buildResponse(CustomerUtils.CUSTOMER_CREATION_CODE, CustomerUtils.CUSTOMER_CREATION_MESSAGE, null, newCustomer);
     }
 
-    // Helper method for sending notifications
-    private void sendNotification(String receiver, String subject, String body) {
-        notificationServiceClient.sendNotification(NotificationDTO.builder()
-                .receiver(receiver)
-                .subject(subject)
-                .body(body)
-                .build());
+    private String buildCustomerMessage(AccountDTO account) {
+
+        if(account!=null){
+            return "Response Code = " + CustomerUtils.CUSTOMER_DELETION_CODE + "\n\n" +
+                    "Response Message = " + CustomerUtils.CUSTOMER_DELETION_MESSAGE + "\n\n" +
+                    "Account Details: Account Number: " + account.getAccountNumber() + ", Balance: " + account.getBalance();
+        }
+        return "Response Code = " + CustomerUtils.CUSTOMER_DELETION_CODE + "\n\n" +
+                "Response Message = " + CustomerUtils.CUSTOMER_DELETION_MESSAGE + "\n\n" ;
+
+    }
+    private String buildCustomerMessage() {
+        return "Response Code = " + CustomerUtils.CUSTOMER_CREATION_CODE + "\n\n" +
+                "Response Message = " + CustomerUtils.CUSTOMER_CREATION_MESSAGE + "\n\n";
     }
 
     // Helper method for building BankDto response

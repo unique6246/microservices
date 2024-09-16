@@ -19,4 +19,9 @@ public class TransactionUtils {
     public static final String CREDIT_TRANSACTION_COMPLETED_CODE = "025";
     public static final String CREDIT_TRANSACTION_COMPLETED_MESSAGE = "CREDIT TRANSACTION COMPLETED";
 
+    public static final String SELF_TRANSACTION_CODE = "026";
+    public static final String SELF_TRANSACTION_MESSAGE = "SELF TRANSACTION ALERT";
+
+    public static final String MINIMUM_TRANSACTION_AMOUNT_CODE = "027";
+    public static final String MINIMUM_TRANSACTION_AMOUNT_MESSAGE = "MINIMUM TRANSACTION AMOUNT";
 }

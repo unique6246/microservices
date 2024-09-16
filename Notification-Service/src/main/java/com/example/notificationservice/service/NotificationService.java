@@ -3,6 +3,7 @@ package com.example.notificationservice.service;
 import com.example.notificationservice.Repo.NotificationRepository;
 import com.example.notificationservice.dto.NotificationDTO;
 import com.example.notificationservice.entity.Notification;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
@@ -34,6 +35,13 @@ public class NotificationService {
         return matcher.matches();
     }
 
+    @RabbitListener(queues = {"${account.queue.json.name}"})
+    public void handleNotification(NotificationDTO notificationDTO) {
+
+        String message=sendNotification(notificationDTO);
+        System.out.println("Received notification message: " + message);
+    }
+
     //notification sending
     public String sendNotification(NotificationDTO notificationDTO) {
         if (!isValidEmailFormat(notificationDTO.getReceiver())) {
@@ -47,7 +55,7 @@ public class NotificationService {
         message.setText(notificationDTO.getBody());
         mailSender.send(message);
         saveNotification(notificationDTO);
-        return "Your notification has been sent successfully.";
+        return "notification has been sent successfully.";
     }
 
     //save notification

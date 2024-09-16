@@ -1,6 +1,7 @@
 package com.example.accountservices.service;
 
 import com.example.accountservices.Repo.AccountRepository;
+import com.example.accountservices.config.RabbitMQConfig;
 import com.example.accountservices.dto.*;
 import com.example.accountservices.entity.Account;
 import com.example.accountservices.accountUtils.AccountUtils;
@@ -8,7 +9,9 @@ import com.example.accountservices.feignconfig.CustomerServiceClient;
 import com.example.accountservices.feignconfig.NotificationServiceClient;
 import com.example.accountservices.service.impli.AccountServiceImpl;
 import jakarta.transaction.Transactional;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -17,6 +20,15 @@ import java.util.stream.Collectors;
 
 @Service
 public class AccountService implements AccountServiceImpl {
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+
+    @Value("${account.exchange.name}")
+    private String EXCHANGE_NAME;
+
+    @Value("${account.routing.json.key}")
+    private String JSON_ROUTING_KEY;
 
     @Autowired
     private AccountRepository accountRepository;
@@ -63,9 +75,17 @@ public class AccountService implements AccountServiceImpl {
                 .build());
 
         CustomerDTO customer = customerServiceClient.getCustomerById(newAccount.getCustomerId());
-        sendNotification(customer.getEmail(), "Welcome to our Bank", buildAccountMessage(newAccount, AccountUtils.ACCOUNT_CREATION_CODE, AccountUtils.ACCOUNT_CREATION_MESSAGE));
 
-        return buildResponse(AccountUtils.ACCOUNT_CREATION_CODE, AccountUtils.ACCOUNT_CREATION_MESSAGE, newAccount.getAccountNumber(), newAccount.getBalance(), customer.getFirstName() + " " + customer.getLastName());
+        rabbitTemplate.convertAndSend(EXCHANGE_NAME, JSON_ROUTING_KEY, NotificationDTO.builder()
+                .receiver(customer.getEmail())
+                .subject("Welcome to our Bank")
+                .body(buildAccountMessage(newAccount, AccountUtils.ACCOUNT_CREATION_CODE, AccountUtils.ACCOUNT_CREATION_MESSAGE))
+                .build());
+        System.out.println("Notification sent to queue");
+        //sending mail using synchronous communication
+//        sendNotification(customer.getEmail(), "Welcome to our Bank", buildAccountMessage(newAccount, AccountUtils.ACCOUNT_CREATION_CODE, AccountUtils.ACCOUNT_CREATION_MESSAGE));
+
+        return buildResponse(AccountUtils.ACCOUNT_CREATION_CODE, AccountUtils.ACCOUNT_CREATION_MESSAGE, newAccount.getAccountNumber(), newAccount.getBalance(), customer.getFirstName()+ " " + customer.getLastName());
     }
 
     // Delete account
@@ -79,7 +99,15 @@ public class AccountService implements AccountServiceImpl {
         accountRepository.deleteAccountByAccountNumber(accountNumber);
         CustomerDTO customer = customerServiceClient.getCustomerById(account.getCustomerId());
 
-        sendNotification(customer.getEmail(), "Account Deletion", buildAccountMessage(account, AccountUtils.ACCOUNT_DELETION_CODE, AccountUtils.ACCOUNT_DELETION_MESSAGE));
+        rabbitTemplate.convertAndSend(EXCHANGE_NAME, JSON_ROUTING_KEY, NotificationDTO.builder()
+                .receiver(customer.getEmail())
+                .subject("Account Deletion")
+                .body(buildAccountMessage(account, AccountUtils.ACCOUNT_DELETION_CODE, AccountUtils.ACCOUNT_DELETION_MESSAGE))
+                .build());
+        System.out.println("Notification sent to queue");
+
+        //sending mail using synchronous communication
+//        sendNotification(customer.getEmail(), "Account Deletion", buildAccountMessage(account, AccountUtils.ACCOUNT_DELETION_CODE, AccountUtils.ACCOUNT_DELETION_MESSAGE));
 
         return buildResponse(AccountUtils.ACCOUNT_DELETION_CODE, AccountUtils.ACCOUNT_DELETION_MESSAGE, null, null, null);
     }
@@ -90,15 +118,6 @@ public class AccountService implements AccountServiceImpl {
         account.setBalance(balance);
         accountRepository.save(account);
         return "updated";
-    }
-
-    // Helper methods
-    private void sendNotification(String receiver, String subject, String body) {
-        notificationServiceClient.sendNotification(NotificationDTO.builder()
-                .receiver(receiver)
-                .subject(subject)
-                .body(body)
-                .build());
     }
 
     private String buildAccountMessage(Account account, String code, String message) {
