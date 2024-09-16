@@ -5,7 +5,6 @@ import com.example.coustomerservices.Repo.CustomerRepository;
 import com.example.coustomerservices.dto.*;
 import com.example.coustomerservices.entity.Customer;
 import com.example.coustomerservices.feignconfig.AccountServiceClient;
-import com.example.coustomerservices.feignconfig.NotificationServiceClient;
 import com.example.coustomerservices.service.impli.CustomerImpl;
 import jakarta.transaction.Transactional;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -30,9 +29,6 @@ public class CustomerServiceImpl implements CustomerImpl {
 
     @Autowired
     private CustomerRepository customerRepository;
-
-    @Autowired
-    private NotificationServiceClient notificationServiceClient;
 
     @Autowired
     private AccountServiceClient accountServiceClient;

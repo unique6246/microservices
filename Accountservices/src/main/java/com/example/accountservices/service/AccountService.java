@@ -1,12 +1,10 @@
 package com.example.accountservices.service;
 
 import com.example.accountservices.Repo.AccountRepository;
-import com.example.accountservices.config.RabbitMQConfig;
 import com.example.accountservices.dto.*;
 import com.example.accountservices.entity.Account;
 import com.example.accountservices.accountUtils.AccountUtils;
 import com.example.accountservices.feignconfig.CustomerServiceClient;
-import com.example.accountservices.feignconfig.NotificationServiceClient;
 import com.example.accountservices.service.impli.AccountServiceImpl;
 import jakarta.transaction.Transactional;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -35,9 +33,6 @@ public class AccountService implements AccountServiceImpl {
 
     @Autowired
     private CustomerServiceClient customerServiceClient;
-
-    @Autowired
-    private NotificationServiceClient notificationServiceClient;
 
     // Get all accounts
     public List<AccountDTO> getAllAccounts() {
