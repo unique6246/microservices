@@ -1,0 +1,682 @@
+{
+  "info": {
+    "name": "Banking Microservices — Full API Flow",
+    "description": "Complete end-to-end flow: Auth → Customer → Account → Transactions → Notifications\n\nAll requests go through the API Gateway on http://localhost:8080\n\nRun in order — each step auto-saves IDs and tokens for the next step.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",       "value": "http://localhost:8080" },
+    { "key": "token",         "value": "" },
+    { "key": "customerId1",   "value": "" },
+    { "key": "customerId2",   "value": "" },
+    { "key": "accountNumber1","value": "" },
+    { "key": "accountNumber2","value": "" }
+  ],
+  "item": [
+
+    {
+      "name": "0 — Auth",
+      "item": [
+        {
+          "name": "0.1 Get JWT Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.collectionVariables.set('token', json.access_token);",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Token received', () => pm.expect(json.access_token).to.be.a('string'));",
+                  "console.log('✅ Token saved:', json.access_token.substring(0,40) + '...');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"alice\",\n  \"roles\": [\"USER\", \"ADMIN\"]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/token", "host": ["{{baseUrl}}"], "path": ["auth","token"] }
+          }
+        },
+        {
+          "name": "0.2 Verify Token Rejected Without Auth (401 check)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Returns 401 without token', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/customers", "host": ["{{baseUrl}}"], "path": ["api","v1","customers"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "1 — Customer Service",
+      "item": [
+        {
+          "name": "1.1 Create Customer 1 (Alice)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "var json = pm.response.json();",
+                  "if (json.accountInfo && json.accountInfo.customerId) {",
+                  "  pm.collectionVariables.set('customerId1', json.accountInfo.customerId);",
+                  "  console.log('✅ customerId1 saved:', json.accountInfo.customerId);",
+                  "}",
+                  "pm.test('Response code present', () => pm.expect(json.responseCode).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Alice\",\n  \"lastName\": \"Johnson\",\n  \"gender\": \"FEMALE\",\n  \"address\": \"10 Baker Street, London\",\n  \"phoneNumber\": \"+19876543210\",\n  \"email\": \"alice.johnson@example.com\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/customers", "host": ["{{baseUrl}}"], "path": ["api","v1","customers"] }
+          }
+        },
+        {
+          "name": "1.2 Create Customer 2 (Bob)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "var json = pm.response.json();",
+                  "if (json.accountInfo && json.accountInfo.customerId) {",
+                  "  pm.collectionVariables.set('customerId2', json.accountInfo.customerId);",
+                  "  console.log('✅ customerId2 saved:', json.accountInfo.customerId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Bob\",\n  \"lastName\": \"Smith\",\n  \"gender\": \"MALE\",\n  \"address\": \"22 Oak Avenue, New York\",\n  \"phoneNumber\": \"+11234567890\",\n  \"email\": \"bob.smith@example.com\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/customers", "host": ["{{baseUrl}}"], "path": ["api","v1","customers"] }
+          }
+        },
+        {
+          "name": "1.3 Get Customer 1 by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var json = pm.response.json();",
+                  "pm.test('First name is Alice', () => pm.expect(json.firstName).to.eql('Alice'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/customers/{{customerId1}}", "host": ["{{baseUrl}}"], "path": ["api","v1","customers","{{customerId1}}"] }
+          }
+        },
+        {
+          "name": "1.4 List All Customers (paginated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var json = pm.response.json();",
+                  "pm.test('Content is a page', () => pm.expect(json).to.have.property('content'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/customers?page=0&size=20",
+              "host": ["{{baseUrl}}"], "path": ["api","v1","customers"],
+              "query": [{ "key": "page","value": "0" }, { "key": "size","value": "20" }]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "2 — Account Service",
+      "item": [
+        {
+          "name": "2.1 Open Account for Customer 1 (Savings)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "var json = pm.response.json();",
+                  "if (json.accountInfo && json.accountInfo.accountNumber) {",
+                  "  pm.collectionVariables.set('accountNumber1', json.accountInfo.accountNumber);",
+                  "  console.log('✅ accountNumber1 saved:', json.accountInfo.accountNumber);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountType\": \"SAVINGS\",\n  \"balance\": 0.00,\n  \"customerId\": {{customerId1}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/accounts", "host": ["{{baseUrl}}"], "path": ["api","v1","accounts"] }
+          }
+        },
+        {
+          "name": "2.2 Open Account for Customer 2 (Current)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "var json = pm.response.json();",
+                  "if (json.accountInfo && json.accountInfo.accountNumber) {",
+                  "  pm.collectionVariables.set('accountNumber2', json.accountInfo.accountNumber);",
+                  "  console.log('✅ accountNumber2 saved:', json.accountInfo.accountNumber);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountType\": \"CURRENT\",\n  \"balance\": 0.00,\n  \"customerId\": {{customerId2}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/accounts", "host": ["{{baseUrl}}"], "path": ["api","v1","accounts"] }
+          }
+        },
+        {
+          "name": "2.3 Get Account by Customer 1 ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var json = pm.response.json();",
+                  "pm.test('Account type is SAVINGS', () => pm.expect(json.accountType).to.eql('SAVINGS'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/accounts/customer/{{customerId1}}", "host": ["{{baseUrl}}"], "path": ["api","v1","accounts","customer","{{customerId1}}"] }
+          }
+        },
+        {
+          "name": "2.4 Get Account by Account Number",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/accounts/account/{{accountNumber1}}", "host": ["{{baseUrl}}"], "path": ["api","v1","accounts","account","{{accountNumber1}}"] }
+          }
+        },
+        {
+          "name": "2.5 List All Accounts (paginated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts?page=0&size=20",
+              "host": ["{{baseUrl}}"], "path": ["api","v1","accounts"],
+              "query": [{ "key": "page","value": "0" }, { "key": "size","value": "20" }]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "3 — Transaction Service",
+      "item": [
+        {
+          "name": "3.1 Credit Account 1 — ₹10,000",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "var json = pm.response.json();",
+                  "pm.test('Credit acknowledged', () => pm.expect(json.responseCode).to.be.a('string'));",
+                  "console.log('Credit response:', JSON.stringify(json));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"{{accountNumber1}}\",\n  \"amount\": 10000.00\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/transactions/credit", "host": ["{{baseUrl}}"], "path": ["api","v1","transactions","credit"] }
+          }
+        },
+        {
+          "name": "3.2 Credit Account 2 — ₹5,000",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"{{accountNumber2}}\",\n  \"amount\": 5000.00\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/transactions/credit", "host": ["{{baseUrl}}"], "path": ["api","v1","transactions","credit"] }
+          }
+        },
+        {
+          "name": "3.3 Debit Account 1 — ₹2,000",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "console.log('Debit response:', pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"{{accountNumber1}}\",\n  \"amount\": 2000.00\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/transactions/debit", "host": ["{{baseUrl}}"], "path": ["api","v1","transactions","debit"] }
+          }
+        },
+        {
+          "name": "3.4 Debit — Insufficient Funds (422 check)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Returns 422 or 400 for insufficient funds', () => {",
+                  "  pm.expect([400, 422, 500]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"{{accountNumber1}}\",\n  \"amount\": 9999999.00\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/transactions/debit", "host": ["{{baseUrl}}"], "path": ["api","v1","transactions","debit"] }
+          }
+        },
+        {
+          "name": "3.5 Transfer from Account 1 → Account 2 — ₹1,000",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "console.log('Transfer response:', pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccount\": \"{{accountNumber1}}\",\n  \"toAccount\": \"{{accountNumber2}}\",\n  \"amount\": 1000.00\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/transactions/transfer", "host": ["{{baseUrl}}"], "path": ["api","v1","transactions","transfer"] }
+          }
+        },
+        {
+          "name": "3.6 Get All Transactions (paginated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var json = pm.response.json();",
+                  "pm.test('Has content', () => pm.expect(json).to.have.property('content'));",
+                  "console.log('Total transactions:', json.totalElements);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions?page=0&size=20",
+              "host": ["{{baseUrl}}"], "path": ["api","v1","transactions"],
+              "query": [{ "key": "page","value": "0" }, { "key": "size","value": "20" }]
+            }
+          }
+        },
+        {
+          "name": "3.7 Get Transactions by Account Number",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var json = pm.response.json();",
+                  "pm.test('Is an array', () => pm.expect(json).to.be.an('array'));",
+                  "console.log('Transactions for account1:', json.length);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/transactions/account/{{accountNumber1}}", "host": ["{{baseUrl}}"], "path": ["api","v1","transactions","account","{{accountNumber1}}"] }
+          }
+        },
+        {
+          "name": "3.8 Get Transactions by Type — CREDIT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/transactions/type/CREDIT", "host": ["{{baseUrl}}"], "path": ["api","v1","transactions","type","CREDIT"] }
+          }
+        },
+        {
+          "name": "3.9 Get Transactions by Type — DEBIT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/transactions/type/DEBIT", "host": ["{{baseUrl}}"], "path": ["api","v1","transactions","type","DEBIT"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "4 — Notification Service",
+      "item": [
+        {
+          "name": "4.1 Send Notification Directly (sync)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "console.log('Notification response:', pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"receiver\": \"alice.johnson@example.com\",\n  \"subject\": \"Account Activity Alert\",\n  \"body\": \"Dear Alice, your account has been credited with 10,000. Current balance: 7,000. Thank you for banking with us.\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/notifications/send", "host": ["{{baseUrl}}"], "path": ["api","v1","notifications","send"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "5 — Actuator & Health Checks",
+      "item": [
+        {
+          "name": "5.1 Gateway Health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/actuator/health", "host": ["{{baseUrl}}"], "path": ["actuator","health"] }
+          }
+        },
+        {
+          "name": "5.2 Gateway Routes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/actuator/gateway/routes", "host": ["{{baseUrl}}"], "path": ["actuator","gateway","routes"] }
+          }
+        },
+        {
+          "name": "5.3 Account Service Health (direct)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "http://localhost:8001/actuator/health", "raw": "http://localhost:8001/actuator/health" }
+          }
+        },
+        {
+          "name": "5.4 Customer Service Health (direct)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "http://localhost:8002/actuator/health" }
+          }
+        },
+        {
+          "name": "5.5 Transaction Service Health (direct)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "http://localhost:8003/actuator/health" }
+          }
+        },
+        {
+          "name": "5.6 Notification Service Health (direct)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "http://localhost:8004/actuator/health" }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "6 — Circuit Breaker (Fallback Tests)",
+      "item": [
+        {
+          "name": "6.1 Account CB Fallback (invalid route)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Gets fallback or error', () => {",
+                  "  pm.expect([200, 503, 401, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/accounts/99999999", "host": ["{{baseUrl}}"], "path": ["api","v1","accounts","99999999"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "7 — Cleanup",
+      "item": [
+        {
+          "name": "7.1 Delete Customer 2 (Bob) — cascades account delete",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "console.log('Delete customer2 response:', pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/customers/{{customerId2}}", "host": ["{{baseUrl}}"], "path": ["api","v1","customers","{{customerId2}}"] }
+          }
+        },
+        {
+          "name": "7.2 Delete Customer 1 (Alice) — cascades account delete",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/customers/{{customerId1}}", "host": ["{{baseUrl}}"], "path": ["api","v1","customers","{{customerId1}}"] }
+          }
+        }
+      ]
+    }
+  ]
+}
+

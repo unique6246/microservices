@@ -1,0 +1,155 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Notification Service — Port 8004
+# Depends on: mysql-notification, rabbitmq, eureka-server
+# ─────────────────────────────────────────────────────────────────────────────
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: banking
+  labels:
+    app: notification-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z mysql-notification 3306; do sleep 3; done
+              echo "mysql-notification is ready!"
+        - name: wait-for-rabbitmq
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z rabbitmq 5672; do sleep 3; done
+              echo "rabbitmq is ready!"
+        - name: wait-for-eureka
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z eureka-server 8761; do sleep 5; done
+              echo "eureka-server is ready!"
+      containers:
+        - name: notification-service
+          image: localhost:5000/banking/notification-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8004
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-config
+                  key: SPRING_PROFILES_ACTIVE
+            - name: SERVER_PORT
+              value: "8004"
+            - name: DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-config
+                  key: DB_URL_NOTIFICATION
+            - name: DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-config
+                  key: DB_USER
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: DB_PASS
+            - name: RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-config
+                  key: RABBITMQ_HOST
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: RABBITMQ_USER
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: RABBITMQ_PASS
+            - name: SMTP_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: SMTP_HOST
+            - name: SMTP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: SMTP_PORT
+            - name: SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: SMTP_USER
+            - name: SMTP_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: SMTP_PASS
+            - name: EUREKA_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-config
+                  key: EUREKA_URI
+            - name: ZIPKIN_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-config
+                  key: ZIPKIN_URI
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8004
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 8
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8004
+            initialDelaySeconds: 120
+            periodSeconds: 30
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  namespace: banking
+spec:
+  selector:
+    app: notification-service
+  ports:
+    - port: 8004
+      targetPort: 8004
+

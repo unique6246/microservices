@@ -2,13 +2,13 @@ package com.example.accountservices.service.impli;
 
 import com.example.accountservices.dto.AccountDTO;
 import com.example.accountservices.dto.BankDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 public interface AccountServiceImpl {
-
-    List<AccountDTO> getAllAccounts();
+    Page<AccountDTO> getAllAccounts(Pageable pageable);
     AccountDTO getAccountById(Long id);
     AccountDTO getAccountByCustomerId(Long customerId);
     AccountDTO getAccountByAccountNumber(String accountNumber);

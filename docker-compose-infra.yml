@@ -1,0 +1,58 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# docker-compose-infra.yml — Dev infrastructure only (no app services)
+#
+# Starts: Redis · RabbitMQ · Zipkin
+# Use this when running the Spring Boot services locally (not in Docker).
+#
+# Usage:
+#   docker-compose -f docker-compose-infra.yml up -d
+#   docker-compose -f docker-compose-infra.yml down
+# ─────────────────────────────────────────────────────────────────────────────
+
+version: "3.3"
+
+services:
+
+  # ── Redis (caching + gateway rate limiting) ────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: redis-dev
+    ports:
+      - "6379:6379"
+    # No password in dev — matches application.yml default ${REDIS_PASS:}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── RabbitMQ (async messaging) ─────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq-dev
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"    # Management UI → http://localhost:15672  (guest/guest)
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Zipkin (distributed tracing) ───────────────────────────────────────────
+  zipkin:
+    image: openzipkin/zipkin:3
+    container_name: zipkin-dev
+    ports:
+      - "9411:9411"      # UI + API → http://localhost:9411
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9411/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+

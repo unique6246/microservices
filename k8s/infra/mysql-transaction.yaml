@@ -1,0 +1,94 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# MySQL — Transaction DB
+# ─────────────────────────────────────────────────────────────────────────────
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-transaction-pvc
+  namespace: banking
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-transaction
+  namespace: banking
+  labels:
+    app: mysql-transaction
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-transaction
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql-transaction
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_DATABASE
+              value: "transaction_db"
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: DB_PASS
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD}"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD}"
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mysql-transaction-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-transaction
+  namespace: banking
+spec:
+  selector:
+    app: mysql-transaction
+  ports:
+    - port: 3306
+      targetPort: 3306
+  clusterIP: None
+

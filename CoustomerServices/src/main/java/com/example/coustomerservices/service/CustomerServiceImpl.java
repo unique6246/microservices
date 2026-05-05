@@ -4,22 +4,32 @@ import com.example.coustomerservices.CustomerUtils.CustomerUtils;
 import com.example.coustomerservices.Repo.CustomerRepository;
 import com.example.coustomerservices.dto.*;
 import com.example.coustomerservices.entity.Customer;
+import com.example.coustomerservices.exception.BusinessRuleException;
+import com.example.coustomerservices.exception.DuplicateResourceException;
+import com.example.coustomerservices.exception.ResourceNotFoundException;
+import com.example.coustomerservices.config.NotificationPublisher;
 import com.example.coustomerservices.feignconfig.AccountServiceClient;
 import com.example.coustomerservices.service.impli.CustomerImpl;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import jakarta.transaction.Transactional;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class CustomerServiceImpl implements CustomerImpl {
 
-    @Autowired
-    public RabbitTemplate rabbitTemplate;
+    private final NotificationPublisher notificationPublisher;
+    private final CustomerRepository customerRepository;
+    private final AccountServiceClient accountServiceClient;
 
     @Value("${account.exchange.name}")
     private String EXCHANGE_NAME;
@@ -27,58 +37,25 @@ public class CustomerServiceImpl implements CustomerImpl {
     @Value("${account.routing.json.key}")
     private String JSON_ROUTING_KEY;
 
-    @Autowired
-    private CustomerRepository customerRepository;
+    // ── Queries ─────────────────────────────────────────────────────────────
 
-    @Autowired
-    private AccountServiceClient accountServiceClient;
-
-    @Override
-    public List<CustomerDTO> getAllCustomers() {
-        return customerRepository.findAll().stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+    public Page<CustomerDTO> getAllCustomers(Pageable pageable) {
+        return customerRepository.findAll(pageable).map(this::convertToDTO);
     }
 
+    @Cacheable(value = "customers", key = "#id")
     public CustomerDTO getCustomerById(Long id) {
-        return customerRepository.findById(id).map(this::convertToDTO).orElse(null);
+        return customerRepository.findById(id)
+                .map(this::convertToDTO)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer", "id", id));
     }
+
+    // ── Commands ─────────────────────────────────────────────────────────────
 
     @Transactional
-    public BankDto deleteCustomer(Long id) {
-        if (!customerRepository.existsById(id)) {
-            return buildResponse(CustomerUtils.CUSTOMER_NOT_EXISTS_CODE, CustomerUtils.CUSTOMER_NOT_EXISTS_MESSAGE, null, null);
-        }
-
-        Customer customer = customerRepository.findCustomerById(id);
-        AccountDTO accountDTO = accountServiceClient.getAccountByCustomerId(customer.getId());
-        if(accountDTO != null) {
-            accountServiceClient.deleteAccount(accountDTO.getAccountNumber());
-
-        }
-        rabbitTemplate.convertAndSend(EXCHANGE_NAME, JSON_ROUTING_KEY, NotificationDTO.builder()
-                .receiver(customer.getEmail())
-                .subject("Customer Account Deletion")
-                .body(buildCustomerMessage(accountDTO))
-                .build());
-
-
-        //sending mail using synchronous communication
-//        sendNotification(customer.getEmail(), "Customer Account Deletion",
-//                "Response Code = " + CustomerUtils.CUSTOMER_DELETION_CODE + "\n\n" +
-//                        "Response Message = " + CustomerUtils.CUSTOMER_DELETION_MESSAGE + "\n\n" +
-//                        "Account Details = Account Number:" + accountDTO.getAccountNumber() +
-//                        ", Account Balance: " + accountDTO.getBalance());
-
-        customerRepository.deleteCustomerById(id);
-
-        return buildResponse(CustomerUtils.CUSTOMER_DELETION_CODE, CustomerUtils.CUSTOMER_DELETION_MESSAGE, accountDTO, customer);
-    }
-
-    @Override
     public BankDto createAccount(CustomerDTO customerDTO) {
         if (customerRepository.existsByEmail(customerDTO.getEmail())) {
-            return buildResponse(CustomerUtils.CUSTOMER_EXISTS_CODE, CustomerUtils.CUSTOMER_EXISTS_MESSAGE, null, null);
+            throw new DuplicateResourceException("Customer already exists with email: " + customerDTO.getEmail());
         }
 
         Customer newCustomer = customerRepository.save(Customer.builder()
@@ -90,37 +67,69 @@ public class CustomerServiceImpl implements CustomerImpl {
                 .email(customerDTO.getEmail())
                 .build());
 
-        rabbitTemplate.convertAndSend(EXCHANGE_NAME, JSON_ROUTING_KEY, NotificationDTO.builder()
-                .receiver(newCustomer.getEmail())
-                .subject("Welcome to our Bank")
-                .body(buildCustomerMessage())
-                .build());
+        publishNotification(newCustomer.getEmail(), "Welcome to Our Bank",
+                buildWelcomeMessage(newCustomer));
 
-        //sending mail using synchronous communication
-//        sendNotification(newCustomer.getEmail(), "Welcome to our Bank",
-//                "Response Code = " + CustomerUtils.CUSTOMER_CREATION_CODE + "\n\n" +
-//                        "Response Message = " + CustomerUtils.CUSTOMER_CREATION_MESSAGE);
-
+        log.info("Customer registered: id={}, email={}", newCustomer.getId(), newCustomer.getEmail());
         return buildResponse(CustomerUtils.CUSTOMER_CREATION_CODE, CustomerUtils.CUSTOMER_CREATION_MESSAGE, null, newCustomer);
     }
 
-    private String buildCustomerMessage(AccountDTO account) {
+    @Transactional
+    @CircuitBreaker(name = "accountService", fallbackMethod = "deleteCustomerFallback")
+    @Retry(name = "accountService")
+    @CacheEvict(value = "customers", key = "#id")
+    public BankDto deleteCustomer(Long id) {
+        Customer customer = customerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer", "id", id));
 
-        if(account!=null){
-            return "Response Code = " + CustomerUtils.CUSTOMER_DELETION_CODE + "\n\n" +
-                    "Response Message = " + CustomerUtils.CUSTOMER_DELETION_MESSAGE + "\n\n" +
-                    "Account Details: Account Number: " + account.getAccountNumber() + ", Balance: " + account.getBalance();
+        AccountDTO accountDTO = null;
+        try {
+            accountDTO = accountServiceClient.getAccountByCustomerId(customer.getId());
+            if (accountDTO != null && accountDTO.getAccountNumber() != null) {
+                accountServiceClient.deleteAccount(accountDTO.getAccountNumber());
+            }
+        } catch (Exception e) {
+            log.warn("Could not delete account for customerId={}: {}", id, e.getMessage());
         }
-        return "Response Code = " + CustomerUtils.CUSTOMER_DELETION_CODE + "\n\n" +
-                "Response Message = " + CustomerUtils.CUSTOMER_DELETION_MESSAGE + "\n\n" ;
 
-    }
-    private String buildCustomerMessage() {
-        return "Response Code = " + CustomerUtils.CUSTOMER_CREATION_CODE + "\n\n" +
-                "Response Message = " + CustomerUtils.CUSTOMER_CREATION_MESSAGE + "\n\n";
+        publishNotification(customer.getEmail(), "Account Deletion Confirmation",
+                buildDeletionMessage(accountDTO));
+
+        customerRepository.deleteCustomerById(id);
+        log.info("Customer deleted: id={}", id);
+        return buildResponse(CustomerUtils.CUSTOMER_DELETION_CODE, CustomerUtils.CUSTOMER_DELETION_MESSAGE, accountDTO, customer);
     }
 
-    // Helper method for building BankDto response
+    // ── Fallbacks ────────────────────────────────────────────────────────────
+
+    public BankDto deleteCustomerFallback(Long id, Exception ex) {
+        log.error("AccountService circuit breaker triggered during customer deletion: {}", ex.getMessage());
+        throw new BusinessRuleException("Account service is unavailable. Customer deletion paused. Retry later.");
+    }
+
+    // ── Private Helpers ──────────────────────────────────────────────────────
+
+    private void publishNotification(String receiver, String subject, String body) {
+        // Fire-and-forget via async publisher — never blocks the HTTP thread
+        notificationPublisher.publish(EXCHANGE_NAME, JSON_ROUTING_KEY, receiver, subject, body);
+    }
+
+    private String buildWelcomeMessage(Customer customer) {
+        return String.format("Dear %s %s,%n%nWelcome to Our Bank! Your account has been registered.%n%nCode: %s%nMessage: %s",
+                customer.getFirstName(), customer.getLastName(),
+                CustomerUtils.CUSTOMER_CREATION_CODE, CustomerUtils.CUSTOMER_CREATION_MESSAGE);
+    }
+
+    private String buildDeletionMessage(AccountDTO accountDTO) {
+        StringBuilder sb = new StringBuilder(String.format("Code: %s%nMessage: %s%n",
+                CustomerUtils.CUSTOMER_DELETION_CODE, CustomerUtils.CUSTOMER_DELETION_MESSAGE));
+        if (accountDTO != null && accountDTO.getAccountNumber() != null) {
+            sb.append(String.format("Closed Account: %s%nFinal Balance: %s",
+                    accountDTO.getAccountNumber(), accountDTO.getBalance()));
+        }
+        return sb.toString();
+    }
+
     private BankDto buildResponse(String code, String message, AccountDTO accountDTO, Customer customer) {
         return BankDto.builder()
                 .responseCode(code)
@@ -133,15 +142,17 @@ public class CustomerServiceImpl implements CustomerImpl {
                 .build();
     }
 
-    // Convert Customer to DTO
     private CustomerDTO convertToDTO(Customer customer) {
         return CustomerDTO.builder()
+                .id(customer.getId())
                 .firstName(customer.getFirstName())
                 .lastName(customer.getLastName())
                 .gender(customer.getGender())
                 .address(customer.getAddress())
                 .phoneNumber(customer.getPhoneNumber())
                 .email(customer.getEmail())
+                .createdAt(customer.getCreatedAt())
+                .modifiedAt(customer.getModifiedAt())
                 .build();
     }
 }

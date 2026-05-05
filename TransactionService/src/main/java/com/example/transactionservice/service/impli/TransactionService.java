@@ -3,12 +3,13 @@ package com.example.transactionservice.service.impli;
 import com.example.transactionservice.dto.BankDto;
 import com.example.transactionservice.dto.TransactionDTO;
 import com.example.transactionservice.dto.TransferDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
 public interface TransactionService {
-
-    List<TransactionDTO> getAllTransactions();
+    Page<TransactionDTO> getAllTransactions(Pageable pageable);
     List<TransactionDTO> getTransactionsByAccountNumber(String accountNumber);
     List<TransactionDTO> getTransactionsByTransactionType(String transactionType);
     BankDto creditTransaction(TransactionDTO transactionDTO);

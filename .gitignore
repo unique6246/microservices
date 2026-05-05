@@ -1,0 +1,5 @@
+.env
+*.jar
+*.class
+target/
+

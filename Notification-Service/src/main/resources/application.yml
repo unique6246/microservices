@@ -1,19 +1,144 @@
 spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/notification_db
-    username: root
-    password: 6246
-    driver-class-name: com.mysql.cj.jdbc.Driver
+  application:
+    name: NOTIFICATION-SERVICE
+  profiles:
+    active: dev
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
-    database-platform: org.hibernate.dialect.MySQL8Dialect
+      ddl-auto: validate
+    show-sql: false
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASS:guest}
+    listener:
+      simple:
+        acknowledge-mode: auto
+        retry:
+          enabled: true
+          initial-interval: 2000
+          max-attempts: 3
+          multiplier: 2.0
+          max-interval: 10000
+  mail:
+    host: ${SMTP_HOST:smtp.gmail.com}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USER:your-email@gmail.com}
+    password: ${SMTP_PASS:your-app-password}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
 eureka:
   instance:
-    hostname: localhost
+    hostname: ${HOSTNAME:localhost}
+    prefer-ip-address: true
+    health-check-url-path: /actuator/health
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+
 server:
-  port: 8004
+  port: ${SERVER_PORT:8004}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URI:http://localhost:9411/api/v2/spans}
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+account:
+  queue:
+    json:
+      name: accountJsonQueue
+  exchange:
+    name: accountExchange
+  routing:
+    json:
+      key: accountJsonRoutingKey
+
+logging:
+  level:
+    root: INFO
+    com.example.notificationservice: DEBUG
+    org.springframework.mail: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId},%X{spanId}] [%X{correlationId}] %logger{36} - %msg%n"
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:mysql://localhost:3306/notification_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+    username: ${DB_USER:root}
+    password: ${DB_PASS:Pintu@1617}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+# Force loopback IP so gateway routes to 127.0.0.1 (not the machine's network IP)
+eureka:
+  instance:
+    ip-address: 127.0.0.1
+    prefer-ip-address: true
+
+# Full tracing in dev — Zipkin running via docker-compose-infra.yml
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASS}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+  flyway:
+    enabled: true
+
+management:
+  tracing:
+    sampling:
+      probability: 0.1
+
+logging:
+  level:
+    root: WARN
+    com.example.notificationservice: INFO
+

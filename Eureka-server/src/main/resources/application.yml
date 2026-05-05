@@ -1,10 +1,39 @@
+spring:
+  application:
+    name: EUREKA-SERVER
+  profiles:
+    active: dev
+
 server:
-  port: 8761
+  port: ${SERVER_PORT:8761}
+  shutdown: graceful
 
 eureka:
   instance:
-    hostname: localhost
+    hostname: ${HOSTNAME:localhost}
   client:
-    register-with-eureka: false
-    fetch-registry: false
+    registerWithEureka: false      # This IS the registry - don't register with itself
+    fetchRegistry: false
+    serviceUrl:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+  server:
+    enable-self-preservation: true
+    eviction-interval-timer-in-ms: 15000
+    renewal-percent-threshold: 0.85
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.netflix.eureka: WARN
+    com.netflix.discovery: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

@@ -1,0 +1,94 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# MySQL — Customer DB
+# ─────────────────────────────────────────────────────────────────────────────
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-customer-pvc
+  namespace: banking
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-customer
+  namespace: banking
+  labels:
+    app: mysql-customer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-customer
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql-customer
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_DATABASE
+              value: "customer_db"
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: DB_PASS
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD}"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD}"
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mysql-customer-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-customer
+  namespace: banking
+spec:
+  selector:
+    app: mysql-customer
+  ports:
+    - port: 3306
+      targetPort: 3306
+  clusterIP: None
+

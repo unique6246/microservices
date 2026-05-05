@@ -1,0 +1,146 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Customer Service — Port 8002
+# Depends on: mysql-customer, rabbitmq, redis, eureka-server
+# ─────────────────────────────────────────────────────────────────────────────
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-service
+  namespace: banking
+  labels:
+    app: customer-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: customer-service
+  template:
+    metadata:
+      labels:
+        app: customer-service
+    spec:
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for mysql-customer..."
+              until nc -z mysql-customer 3306; do sleep 3; done
+              echo "mysql-customer is ready!"
+        - name: wait-for-rabbitmq
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z rabbitmq 5672; do sleep 3; done
+              echo "rabbitmq is ready!"
+        - name: wait-for-eureka
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z eureka-server 8761; do sleep 5; done
+              echo "eureka-server is ready!"
+      containers:
+        - name: customer-service
+          image: localhost:5000/banking/customer-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8002
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-config
+                  key: SPRING_PROFILES_ACTIVE
+            - name: SERVER_PORT
+              value: "8002"
+            - name: DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-config
+                  key: DB_URL_CUSTOMER
+            - name: DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-config
+                  key: DB_USER
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: DB_PASS
+            - name: RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-config
+                  key: RABBITMQ_HOST
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: RABBITMQ_USER
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: RABBITMQ_PASS
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-config
+                  key: REDIS_HOST
+            - name: REDIS_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: REDIS_PASS
+            - name: EUREKA_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-config
+                  key: EUREKA_URI
+            - name: ZIPKIN_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-config
+                  key: ZIPKIN_URI
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8002
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 8
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8002
+            initialDelaySeconds: 120
+            periodSeconds: 30
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: customer-service
+  namespace: banking
+spec:
+  selector:
+    app: customer-service
+  ports:
+    - port: 8002
+      targetPort: 8002
+

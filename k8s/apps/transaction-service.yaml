@@ -1,0 +1,135 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Transaction Service — Port 8003
+# Depends on: mysql-transaction, rabbitmq, eureka-server
+# ─────────────────────────────────────────────────────────────────────────────
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: transaction-service
+  namespace: banking
+  labels:
+    app: transaction-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: transaction-service
+  template:
+    metadata:
+      labels:
+        app: transaction-service
+    spec:
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z mysql-transaction 3306; do sleep 3; done
+              echo "mysql-transaction is ready!"
+        - name: wait-for-rabbitmq
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z rabbitmq 5672; do sleep 3; done
+              echo "rabbitmq is ready!"
+        - name: wait-for-eureka
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z eureka-server 8761; do sleep 5; done
+              echo "eureka-server is ready!"
+      containers:
+        - name: transaction-service
+          image: localhost:5000/banking/transaction-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8003
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-config
+                  key: SPRING_PROFILES_ACTIVE
+            - name: SERVER_PORT
+              value: "8003"
+            - name: DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-config
+                  key: DB_URL_TRANSACTION
+            - name: DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-config
+                  key: DB_USER
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: DB_PASS
+            - name: RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-config
+                  key: RABBITMQ_HOST
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: RABBITMQ_USER
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: RABBITMQ_PASS
+            - name: EUREKA_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-config
+                  key: EUREKA_URI
+            - name: ZIPKIN_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-config
+                  key: ZIPKIN_URI
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8003
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 8
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8003
+            initialDelaySeconds: 120
+            periodSeconds: 30
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: transaction-service
+  namespace: banking
+spec:
+  selector:
+    app: transaction-service
+  ports:
+    - port: 8003
+      targetPort: 8003
+

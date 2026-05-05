@@ -1,0 +1,31 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: banking
+
+resources:
+  # ── Core Setup ────────────────────────────────────────────────────────────
+  - 00-namespace.yaml
+  - 01-secrets.yaml
+  - 02-configmap.yaml
+
+  # ── Infrastructure ────────────────────────────────────────────────────────
+  - infra/mysql-accounts.yaml
+  - infra/mysql-customer.yaml
+  - infra/mysql-transaction.yaml
+  - infra/mysql-notification.yaml
+  - infra/rabbitmq.yaml
+  - infra/redis.yaml
+  - infra/zipkin.yaml
+
+  # ── Application Services ──────────────────────────────────────────────────
+  - apps/eureka-server.yaml
+  - apps/account-service.yaml
+  - apps/customer-service.yaml
+  - apps/transaction-service.yaml
+  - apps/notification-service.yaml
+  - apps/api-gateway.yaml
+
+  # ── Ingress ───────────────────────────────────────────────────────────────
+  - ingress.yaml
+

@@ -10,9 +10,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 @FeignClient("ACCOUNT-SERVICE")
 public interface AccountServiceClient {
 
-    @GetMapping("/accounts/customer/{id}")
+    @GetMapping("/api/v1/accounts/customer/{id}")
     AccountDTO getAccountByCustomerId(@PathVariable Long id);
 
-    @DeleteMapping("/accounts/{accountNumber}")
+    @DeleteMapping("/api/v1/accounts/{accountNumber}")
     BankDto deleteAccount(@PathVariable String accountNumber);
 }

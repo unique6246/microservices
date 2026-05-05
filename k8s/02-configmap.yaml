@@ -1,0 +1,34 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# 02-configmap.yaml — Common non-sensitive configuration
+# ─────────────────────────────────────────────────────────────────────────────
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: banking-config
+  namespace: banking
+data:
+  # Spring profiles
+  SPRING_PROFILES_ACTIVE: "prod"
+
+  # Service discovery
+  EUREKA_URI: "http://eureka-server:8761/eureka/"
+
+  # Distributed tracing
+  ZIPKIN_URI: "http://zipkin:9411/api/v2/spans"
+
+  # Message broker host
+  RABBITMQ_HOST: "rabbitmq"
+
+  # Cache host
+  REDIS_HOST: "redis"
+
+  # Common DB user
+  DB_USER: "root"
+
+  # Database JDBC URLs (each service uses its own DB)
+  DB_URL_ACCOUNTS:     "jdbc:mysql://mysql-accounts:3306/accounts_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+  DB_URL_CUSTOMER:     "jdbc:mysql://mysql-customer:3306/customer_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+  DB_URL_TRANSACTION:  "jdbc:mysql://mysql-transaction:3306/transaction_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+  DB_URL_NOTIFICATION: "jdbc:mysql://mysql-notification:3306/notification_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+

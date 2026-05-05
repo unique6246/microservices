@@ -1,20 +1,41 @@
 package com.example.transactionservice.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@Schema(description = "Transaction request/response DTO")
 public class TransactionDTO {
+
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY)
     private Long id;
+
+    @NotBlank(message = "Account number is required")
+    @Schema(example = "ACC-1234567890")
     private String accountNumber;
+
+    @NotNull(message = "Amount is required")
+    @Positive(message = "Amount must be positive")
+    @Schema(example = "500.00")
     private BigDecimal amount;
+
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY)
     private String transactionType;
 
+    @Schema(description = "Optional idempotency key to prevent duplicate transactions", example = "550e8400-e29b-41d4-a716-446655440000")
+    private String idempotencyKey;
+
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY)
+    private LocalDateTime createdAt;
 }
