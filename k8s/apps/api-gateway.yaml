@@ -20,6 +20,7 @@ spec:
       labels:
         app: api-gateway
     spec:
+      enableServiceLinks: false
       initContainers:
         - name: wait-for-eureka
           image: busybox:1.35

@@ -20,6 +20,7 @@ spec:
       labels:
         app: eureka-server
     spec:
+      enableServiceLinks: false
       containers:
         - name: eureka-server
           # Replace with your registry image after building
