@@ -206,6 +206,8 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+    connect-retries: 20
+    connect-retries-interval: 3
 
 management:
   tracing:

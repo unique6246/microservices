@@ -20,6 +20,34 @@ spec:
       labels:
         app: notification-service
     spec:
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for mysql-notification:3306..."
+              until nc -z -w 5 mysql-notification 3306; do echo "MySQL not ready, retrying in 5s..."; sleep 5; done
+              echo "MySQL ready!"
+        - name: wait-for-rabbitmq
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for rabbitmq:5672..."
+              until nc -z -w 5 rabbitmq 5672; do echo "RabbitMQ not ready, retrying in 5s..."; sleep 5; done
+              echo "RabbitMQ ready!"
+        - name: wait-for-eureka
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for eureka-server:8761..."
+              until nc -z -w 5 eureka-server 8761; do echo "Eureka not ready, retrying in 5s..."; sleep 5; done
+              echo "Eureka ready!"
       containers:
         - name: notification-service
           image: localhost:5000/banking/notification-service:latest
