@@ -20,6 +20,25 @@ spec:
       labels:
         app: api-gateway
     spec:
+      initContainers:
+        - name: wait-for-eureka
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for eureka-server:8761..."
+              until timeout 5 nc -z eureka-server.banking.svc.cluster.local 8761 2>/dev/null; do echo "Eureka not ready, retrying in 5s..."; sleep 5; done
+              echo "Eureka ready!"
+        - name: wait-for-redis
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for redis:6379..."
+              until timeout 5 nc -z redis.banking.svc.cluster.local 6379 2>/dev/null; do echo "Redis not ready, retrying in 5s..."; sleep 5; done
+              echo "Redis ready!"
       containers:
         - name: api-gateway
           image: localhost:5000/banking/api-gateway:latest

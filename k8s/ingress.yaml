@@ -1,9 +1,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Ingress — Routes external HTTP traffic to API Gateway
-# Requires: nginx ingress controller  (installed by k3s Traefik OR nginx)
-#
-# For k3s Traefik ingress, this works out-of-the-box.
-# For bare k8s: kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/baremetal/deploy.yaml
+# k3s ships with Traefik ingress controller out-of-the-box (no extra install)
+# Access: http://<VM_IP>:80   or NodePort http://<VM_IP>:30080
 # ─────────────────────────────────────────────────────────────────────────────
 
 apiVersion: networking.k8s.io/v1
@@ -12,16 +10,8 @@ metadata:
   name: banking-ingress
   namespace: banking
   annotations:
-    # nginx ingress controller annotations
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
-    # For k3s Traefik, use these instead:
-    # traefik.ingress.kubernetes.io/router.entrypoints: web
+    traefik.ingress.kubernetes.io/router.entrypoints: web
 spec:
-  # If you have a domain name or /etc/hosts entry for the VM IP, set it here.
-  # Otherwise leave rules.host blank to match all hosts.
   rules:
     - http:
         paths:
@@ -32,4 +22,3 @@ spec:
                 name: api-gateway
                 port:
                   number: 8080
-
