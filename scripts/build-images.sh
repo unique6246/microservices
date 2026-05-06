@@ -19,6 +19,17 @@ info()    { echo -e "${GREEN}[INFO]${NC} $*"; }
 warn()    { echo -e "${YELLOW}[WARN]${NC} $*"; }
 heading() { echo -e "\n${CYAN}▶ $*${NC}"; }
 
+# ── Auto-detect container runtime (Podman or Docker) ─────────────────────────
+if command -v podman &>/dev/null; then
+  DOCKER_CMD="podman"
+elif command -v docker &>/dev/null; then
+  DOCKER_CMD="docker"
+else
+  echo -e "${RED}[ERROR]${NC} Neither podman nor docker found. Run install-k8s-tools.sh first."
+  exit 1
+fi
+info "Using container runtime: $DOCKER_CMD"
+
 # ── Resolve project root ─────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
@@ -46,13 +57,13 @@ build_and_push() {
   info "  Dockerfile : $context/$dockerfile"
   info "  Image      : $image"
 
-  docker build \
+  $DOCKER_CMD build \
     --file "$context/$dockerfile" \
     --tag  "$image" \
     "$context"
 
   info "Pushing $image ..."
-  docker push "$image"
+  $DOCKER_CMD push "$image"
   info "✔  $name pushed successfully."
 }
 
@@ -75,7 +86,7 @@ echo -e "${GREEN} All images built & pushed successfully!${NC}"
 echo -e "${GREEN}════════════════════════════════════════${NC}"
 echo ""
 echo "Images in registry $REGISTRY/$NAMESPACE/:"
-docker images --format "  {{.Repository}}:{{.Tag}}" | grep "$REGISTRY/$NAMESPACE" || true
+$DOCKER_CMD images --format "  {{.Repository}}:{{.Tag}}" | grep "$REGISTRY/$NAMESPACE" || true
 echo ""
 info "Next step: Run  ./scripts/deploy-k8s.sh  to deploy to Kubernetes."
 
