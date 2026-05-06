@@ -20,32 +20,6 @@ spec:
       labels:
         app: customer-service
     spec:
-      initContainers:
-        - name: wait-for-mysql
-          image: busybox:1.36
-          command:
-            - sh
-            - -c
-            - |
-              echo "Waiting for mysql-customer..."
-              until nc -z mysql-customer.banking.svc.cluster.local 3306; do sleep 3; done
-              echo "mysql-customer is ready!"
-        - name: wait-for-rabbitmq
-          image: busybox:1.36
-          command:
-            - sh
-            - -c
-            - |
-              until nc -z rabbitmq.banking.svc.cluster.local 5672; do sleep 3; done
-              echo "rabbitmq is ready!"
-        - name: wait-for-eureka
-          image: busybox:1.36
-          command:
-            - sh
-            - -c
-            - |
-              until nc -z eureka-server.banking.svc.cluster.local 8761; do sleep 5; done
-              echo "eureka-server is ready!"
       containers:
         - name: customer-service
           image: localhost:5000/banking/customer-service:latest

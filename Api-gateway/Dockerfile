@@ -4,6 +4,9 @@ WORKDIR /app
 COPY pom.xml .
 RUN mvn dependency:go-offline -q
 COPY src ./src
+# Strip BOM from YAML/properties files (added by Windows PowerShell)
+RUN find /app/src -name "*.yml" -o -name "*.yaml" -o -name "*.properties" | \
+    xargs sed -i '1s/^\xef\xbb\xbf//' 2>/dev/null || true
 RUN mvn clean package -DskipTests -q
 # --- Stage 2: Runtime --------------------------------------------------------
 FROM eclipse-temurin:17-jre-alpine AS runtime

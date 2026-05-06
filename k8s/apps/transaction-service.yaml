@@ -20,31 +20,6 @@ spec:
       labels:
         app: transaction-service
     spec:
-      initContainers:
-        - name: wait-for-mysql
-          image: busybox:1.36
-          command:
-            - sh
-            - -c
-            - |
-              until nc -z mysql-transaction.banking.svc.cluster.local 3306; do sleep 3; done
-              echo "mysql-transaction is ready!"
-        - name: wait-for-rabbitmq
-          image: busybox:1.36
-          command:
-            - sh
-            - -c
-            - |
-              until nc -z rabbitmq.banking.svc.cluster.local 5672; do sleep 3; done
-              echo "rabbitmq is ready!"
-        - name: wait-for-eureka
-          image: busybox:1.36
-          command:
-            - sh
-            - -c
-            - |
-              until nc -z eureka-server.banking.svc.cluster.local 8761; do sleep 5; done
-              echo "eureka-server is ready!"
       containers:
         - name: transaction-service
           image: localhost:5000/banking/transaction-service:latest
