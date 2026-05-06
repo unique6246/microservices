@@ -178,7 +178,7 @@ eureka:
     ip-address: 127.0.0.1
     prefer-ip-address: true
 
-# Full tracing in dev — Zipkin running via docker-compose-infra.yml
+# Full tracing in dev - Zipkin running via docker-compose-infra.yml
 management:
   tracing:
     sampling:

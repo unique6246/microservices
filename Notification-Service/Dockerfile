@@ -4,9 +4,10 @@ WORKDIR /app
 COPY pom.xml .
 RUN mvn dependency:go-offline -q
 COPY src ./src
-# Strip BOM from YAML/properties files (added by Windows PowerShell)
-RUN find /app/src -name "*.yml" -o -name "*.yaml" -o -name "*.properties" | \
-    xargs sed -i '1s/^\xef\xbb\xbf//' 2>/dev/null || true
+# Strip BOM (0xEF 0xBB 0xBF) using octal — works on Alpine BusyBox sed
+RUN BOM=$(printf '\357\273\277') && \
+    find /app/src \( -name "*.yml" -o -name "*.yaml" -o -name "*.properties" \) | \
+    xargs -r sed -i "s/^${BOM}//"
 RUN mvn clean package -DskipTests -q
 # --- Stage 2: Runtime --------------------------------------------------------
 FROM eclipse-temurin:17-jre-alpine AS runtime
