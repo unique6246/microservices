@@ -63,7 +63,11 @@ build_and_push() {
     "$context"
 
   info "Pushing $image ..."
-  $DOCKER_CMD push "$image"
+  if [ "$DOCKER_CMD" = "podman" ]; then
+    $DOCKER_CMD push --tls-verify=false "$image"
+  else
+    $DOCKER_CMD push "$image"
+  fi
   info "✔  $name pushed successfully."
 }
 

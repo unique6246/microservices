@@ -51,6 +51,20 @@
     
     <build>
         <plugins>
+            <!-- Disable Maven resource filtering — Spring resolves ${...} at runtime -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                    <resources>
+                        <resource>
+                            <directory>src/main/resources</directory>
+                            <filtering>false</filtering>
+                        </resource>
+                    </resources>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
