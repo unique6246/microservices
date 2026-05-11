@@ -33,8 +33,34 @@ public class TransactionDTO {
     @Schema(accessMode = Schema.AccessMode.READ_ONLY)
     private String transactionType;
 
-    @Schema(description = "Optional idempotency key to prevent duplicate transactions", example = "550e8400-e29b-41d4-a716-446655440000")
+    @Schema(description = "Optional idempotency key", example = "550e8400-e29b-41d4-a716-446655440000")
     private String idempotencyKey;
+
+    // ── Real-world fields ─────────────────────────────────────────────────────
+
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY, example = "NEFT")
+    private String channel;
+
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY, example = "COMPLETED")
+    private String status;
+
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY, example = "TXN-20260511132000-123456")
+    private String referenceNumber;
+
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY)
+    private String beneficiaryAccount;
+
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY)
+    private String beneficiaryName;
+
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY, example = "24.00")
+    private BigDecimal processingFee;
+
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY)
+    private Boolean fraudFlag;
+
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY)
+    private String remarks;
 
     @Schema(accessMode = Schema.AccessMode.READ_ONLY)
     private LocalDateTime createdAt;
