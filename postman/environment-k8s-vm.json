@@ -1,0 +1,11 @@
+{
+  "id": "banking-env-k8s-vm",
+  "name": "Banking — Kubernetes VM",
+  "values": [
+    { "key": "vmIp",    "value": "YOUR_VM_IP_HERE",         "enabled": true,  "description": "CHANGE THIS to your VM IP e.g. 192.168.1.100" },
+    { "key": "baseUrl", "value": "http://YOUR_VM_IP_HERE:30080", "enabled": true },
+    { "key": "token",   "value": "",                        "enabled": true,  "description": "Auto-populated by POST /auth/token" }
+  ],
+  "_postman_variable_scope": "environment"
+}
+

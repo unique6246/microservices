@@ -1,0 +1,11 @@
+{
+  "id": "banking-env-local",
+  "name": "Banking — Local (Docker Compose)",
+  "values": [
+    { "key": "vmIp",    "value": "localhost",       "enabled": true },
+    { "key": "baseUrl", "value": "http://localhost:8080", "enabled": true },
+    { "key": "token",   "value": "",                "enabled": true }
+  ],
+  "_postman_variable_scope": "environment"
+}
+
