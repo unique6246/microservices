@@ -25,6 +25,7 @@ resources:
   - apps/transaction-service.yaml
   - apps/notification-service.yaml
   - apps/api-gateway.yaml
+  - apps/ui-service.yaml
 
   # ── Ingress ───────────────────────────────────────────────────────────────
   - ingress.yaml

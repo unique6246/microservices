@@ -323,3 +323,18 @@ services:
       - banking-net
     restart: unless-stopped
 
+# ─── Banking UI ───────────────────────────────────────────────────────────────
+
+  banking-ui:
+    build:
+      context: ./banking-ui
+      dockerfile: Dockerfile
+    container_name: banking-ui
+    ports:
+      - "3000:80"     # http://localhost:3000
+    depends_on:
+      - api-gateway
+    networks:
+      - banking-net
+    restart: unless-stopped
+

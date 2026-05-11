@@ -1,0 +1,92 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Banking UI Service — nginx serving React SPA on port 80
+# Proxies /api/* and /auth/* to api-gateway:8080
+# External access: http://<VM_IP>:30081
+# ─────────────────────────────────────────────────────────────────────────────
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: banking-ui
+  namespace: banking
+  labels:
+    app: banking-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: banking-ui
+  template:
+    metadata:
+      labels:
+        app: banking-ui
+    spec:
+      enableServiceLinks: false
+      initContainers:
+        - name: wait-for-gateway
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for api-gateway:8080..."
+              until timeout 5 nc -z api-gateway.banking.svc.cluster.local 8080 2>/dev/null; do
+                echo "Gateway not ready, retrying in 5s..."; sleep 5
+              done
+              echo "Gateway ready!"
+      containers:
+        - name: banking-ui
+          image: localhost:5000/banking/banking-ui:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+---
+# Internal ClusterIP service
+apiVersion: v1
+kind: Service
+metadata:
+  name: banking-ui
+  namespace: banking
+spec:
+  selector:
+    app: banking-ui
+  ports:
+    - port: 80
+      targetPort: 80
+---
+# NodePort for external browser access
+apiVersion: v1
+kind: Service
+metadata:
+  name: banking-ui-np
+  namespace: banking
+spec:
+  type: NodePort
+  selector:
+    app: banking-ui
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30081   # Access via http://<VM_IP>:30081
+

@@ -74,12 +74,13 @@ build_and_push() {
 # =============================================================================
 # Build all services
 # =============================================================================
-build_and_push "eureka-server"       "./Eureka-server"
-build_and_push "account-service"     "./Accountservices"
-build_and_push "customer-service"    "./CoustomerServices"
-build_and_push "transaction-service" "./TransactionService"
+build_and_push "eureka-server"        "./Eureka-server"
+build_and_push "account-service"      "./Accountservices"
+build_and_push "customer-service"     "./CoustomerServices"
+build_and_push "transaction-service"  "./TransactionService"
 build_and_push "notification-service" "./Notification-Service"
-build_and_push "api-gateway"         "./Api-gateway"
+build_and_push "api-gateway"          "./Api-gateway"
+build_and_push "banking-ui"           "./banking-ui"
 
 # =============================================================================
 # Summary
