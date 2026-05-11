@@ -37,6 +37,23 @@ spring:
                 name: accountsCB
                 fallbackUri: forward:/fallback/accounts
 
+        # ── LoanService (AccountService) ─────────────────────────────────────
+        - id: LOAN-SERVICE
+          uri: lb://ACCOUNT-SERVICE
+          predicates:
+            - Path=/api/v1/loans/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@remoteAddrKeyResolver}"
+            - name: CircuitBreaker
+              args:
+                name: accountsCB
+                fallbackUri: forward:/fallback/accounts
+
         # ── CustomerService ──────────────────────────────────────────────────
         - id: CUSTOMER-SERVICE
           uri: lb://CUSTOMER-SERVICE
@@ -47,6 +64,40 @@ spring:
               args:
                 redis-rate-limiter.replenishRate: 20
                 redis-rate-limiter.burstCapacity: 40
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@remoteAddrKeyResolver}"
+            - name: CircuitBreaker
+              args:
+                name: customersCB
+                fallbackUri: forward:/fallback/customers
+
+        # ── KYC (CustomerService) ─────────────────────────────────────────────
+        - id: KYC-SERVICE
+          uri: lb://CUSTOMER-SERVICE
+          predicates:
+            - Path=/api/v1/kyc/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 20
+                redis-rate-limiter.burstCapacity: 40
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@remoteAddrKeyResolver}"
+            - name: CircuitBreaker
+              args:
+                name: customersCB
+                fallbackUri: forward:/fallback/customers
+
+        # ── OTP (CustomerService) ─────────────────────────────────────────────
+        - id: OTP-SERVICE
+          uri: lb://CUSTOMER-SERVICE
+          predicates:
+            - Path=/api/v1/otp/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
                 redis-rate-limiter.requestedTokens: 1
                 key-resolver: "#{@remoteAddrKeyResolver}"
             - name: CircuitBreaker

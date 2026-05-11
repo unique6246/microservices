@@ -39,12 +39,15 @@ public class AccountService implements AccountServiceImpl {
     private final CustomerServiceClient  customerServiceClient;
     private final BCryptPasswordEncoder  passwordEncoder = new BCryptPasswordEncoder();
 
-    // Default limits per account type
+    // Default limits per account type.
+    // FIXED_DEPOSIT and LOAN are intentionally 0 — no daily debit transactions are permitted
+    // on these account types (enforced here and in TransactionService).
+    // The DB constraint chk_daily_limit_non_negative (>= 0) allows this value (V3 migration).
     private static final Map<String, BigDecimal> DEFAULT_DAILY_LIMITS = Map.of(
             "SAVINGS",       new BigDecimal("100000"),
             "CURRENT",       new BigDecimal("1000000"),
-            "FIXED_DEPOSIT", new BigDecimal("0"),
-            "LOAN",          new BigDecimal("0")
+            "FIXED_DEPOSIT", BigDecimal.ZERO,
+            "LOAN",          BigDecimal.ZERO
     );
     private static final Map<String, BigDecimal> DEFAULT_MIN_BALANCES = Map.of(
             "SAVINGS",       new BigDecimal("500"),
