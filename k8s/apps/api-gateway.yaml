@@ -47,11 +47,12 @@ spec:
           ports:
             - containerPort: 8080
           env:
+            # Use dev profile so /auth/token (HMAC HS256) is available for Postman testing.
+            # Other services stay on prod; only the gateway needs dev for token issuance.
             - name: SPRING_PROFILES_ACTIVE
-              valueFrom:
-                configMapKeyRef:
-                  name: banking-config
-                  key: SPRING_PROFILES_ACTIVE
+              value: "dev"
+            - name: SPRING_APPLICATION_JSON
+              value: '{"app":{"jwt":{"secret":"dev-local-banking-secret-key-for-hs256-do-not-use-in-prod"}}}'
             - name: SERVER_PORT
               value: "8080"
             - name: REDIS_HOST

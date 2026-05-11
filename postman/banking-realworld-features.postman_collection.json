@@ -1,24 +1,88 @@
 {
   "info": {
-    "name": "Banking Microservices — Real-World Features",
-    "_postman_id": "banking-realworld-v2",
-    "description": "Complete API test collection for all real-world banking features. Set baseUrl variable to your VM IP e.g. http://192.168.1.100:30080",
+    "name": "Banking Microservices â€” VM Testing",
+    "_postman_id": "banking-vm-v3",
+    "description": "Full API test collection for banking services on Kubernetes VM.\n\nQUICK START:\n1. Edit 'vmIp' variable below â€” set your VM's IP address\n2. Run '00 â€” Health Checks' to confirm all pods are up\n3. Run '01 â€” Get JWT Token' â€” token saves to {{token}} automatically\n4. Run folders 02 â†’ 03 â†’ ... in order\n\nAll requests use Bearer {{token}} automatically (collection-level auth).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
   "variable": [
-    { "key": "baseUrl",      "value": "http://localhost:30080" },
-    { "key": "accountNo",    "value": "ACC-0000000000" },
-    { "key": "accountNo2",   "value": "ACC-0000000001" },
-    { "key": "customerId",   "value": "1" },
-    { "key": "customerId2",  "value": "2" },
-    { "key": "loanId",       "value": "1" },
-    { "key": "docId",        "value": "1" },
-    { "key": "referenceNo",  "value": "TXN-20260511000000-000000" },
-    { "key": "otp",          "value": "000000" }
+    { "key": "vmIp",       "value": "YOUR_VM_IP_HERE", "description": "CHANGE THIS â€” your VM IP e.g. 192.168.1.100" },
+    { "key": "baseUrl",    "value": "http://{{vmIp}}:30080" },
+    { "key": "token",      "value": "" },
+    { "key": "accountNo",  "value": "" },
+    { "key": "accountNo2", "value": "" },
+    { "key": "customerId", "value": "1" },
+    { "key": "customerId2","value": "2" },
+    { "key": "loanId",     "value": "1" },
+    { "key": "docId",      "value": "1" },
+    { "key": "referenceNo","value": "" },
+    { "key": "otp",        "value": "" }
   ],
   "item": [
     {
-      "name": "01 — Customer Management",
+      "name": "00 â€” Health Checks (no auth required)",
+      "item": [
+        {
+          "name": "Gateway Health",
+          "request": { "auth": {"type":"noauth"}, "method": "GET", "url": "http://{{vmIp}}:30080/actuator/health" }
+        },
+        {
+          "name": "Eureka UI  (open in browser: http://{{vmIp}}:30761)",
+          "request": { "auth": {"type":"noauth"}, "method": "GET", "url": "http://{{vmIp}}:30761" }
+        },
+        {
+          "name": "Zipkin UI  (open in browser: http://{{vmIp}}:30411)",
+          "request": { "auth": {"type":"noauth"}, "method": "GET", "url": "http://{{vmIp}}:30411" }
+        },
+        {
+          "name": "RabbitMQ Management  (open in browser: http://{{vmIp}}:31672)",
+          "request": { "auth": {"type":"noauth"}, "method": "GET", "url": "http://{{vmIp}}:31672" }
+        }
+      ]
+    },
+    {
+      "name": "01 â€” Get JWT Token",
+      "item": [
+        {
+          "name": "POST /auth/token  â†’  auto-saves {{token}}",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "var body = pm.response.json();",
+                "if (body.access_token) {",
+                "  pm.collectionVariables.set('token', body.access_token);",
+                "  pm.test('Token received', () => pm.expect(body.access_token).to.be.a('string'));",
+                "  console.log('JWT token saved â€” expires in 1h');",
+                "} else {",
+                "  console.error('ERROR: No token â€” check api-gateway pod logs');",
+                "}"
+              ]
+            }
+          }],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "http://{{vmIp}}:30080/auth/token",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"roles\": [\"USER\", \"ADMIN\"]\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify Token Works â€” GET /api/v1/accounts (expect 200)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/accounts" }
+        }
+      ]
+    },
+    {
+      "name": "02 â€” Customer Management",
       "item": [
         {
           "name": "Create Customer 1",
@@ -54,10 +118,10 @@
       ]
     },
     {
-      "name": "02 — Account Management",
+      "name": "02 â€” Account Management",
       "item": [
         {
-          "name": "Create SAVINGS Account (₹500 min-bal, 3.5% interest)",
+          "name": "Create SAVINGS Account (â‚¹500 min-bal, 3.5% interest)",
           "event": [{
             "listen": "test",
             "script": { "exec": [
@@ -79,7 +143,7 @@
           }
         },
         {
-          "name": "Create CURRENT Account (₹10L daily limit)",
+          "name": "Create CURRENT Account (â‚¹10L daily limit)",
           "event": [{
             "listen": "test",
             "script": { "exec": [
@@ -119,7 +183,7 @@
           }
         },
         {
-          "name": "Credit ₹50,000 to Account",
+          "name": "Credit â‚¹50,000 to Account",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -131,7 +195,7 @@
           }
         },
         {
-          "name": "Close Account — Expect Fail (non-zero balance)",
+          "name": "Close Account â€” Expect Fail (non-zero balance)",
           "request": {
             "method": "DELETE",
             "url": "{{baseUrl}}/api/v1/accounts/{{accountNo}}"
@@ -140,7 +204,7 @@
       ]
     },
     {
-      "name": "03 — Freeze & Unfreeze",
+      "name": "03 â€” Freeze & Unfreeze",
       "item": [
         {
           "name": "Freeze Account",
@@ -153,7 +217,7 @@
           }
         },
         {
-          "name": "Debit Frozen Account — Expect Fail",
+          "name": "Debit Frozen Account â€” Expect Fail",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -172,7 +236,7 @@
           }
         },
         {
-          "name": "Unfreeze Active Account — Expect Fail",
+          "name": "Unfreeze Active Account â€” Expect Fail",
           "request": {
             "method": "PATCH",
             "url": "{{baseUrl}}/api/v1/accounts/{{accountNo}}/unfreeze"
@@ -181,10 +245,10 @@
       ]
     },
     {
-      "name": "04 — Daily Transaction Limits",
+      "name": "04 â€” Daily Transaction Limits",
       "item": [
         {
-          "name": "Set Daily Limit to ₹5,000",
+          "name": "Set Daily Limit to â‚¹5,000",
           "request": {
             "method": "PATCH",
             "url": {
@@ -194,7 +258,7 @@
           }
         },
         {
-          "name": "Debit ₹4,000 (within limit) — Should Pass",
+          "name": "Debit â‚¹4,000 (within limit) â€” Should Pass",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -206,7 +270,7 @@
           }
         },
         {
-          "name": "Debit ₹2,000 More — Expect Fail (limit exceeded)",
+          "name": "Debit â‚¹2,000 More â€” Expect Fail (limit exceeded)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -218,7 +282,7 @@
           }
         },
         {
-          "name": "Breach Min Balance — Expect Fail",
+          "name": "Breach Min Balance â€” Expect Fail",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -230,7 +294,7 @@
           }
         },
         {
-          "name": "Reset Daily Limit to ₹1,00,000",
+          "name": "Reset Daily Limit to â‚¹1,00,000",
           "request": {
             "method": "PATCH",
             "url": {
@@ -242,10 +306,10 @@
       ]
     },
     {
-      "name": "05 — TPIN (4-digit PIN)",
+      "name": "05 â€” TPIN (4-digit PIN)",
       "item": [
         {
-          "name": "Verify PIN Before Setting — Expect Fail",
+          "name": "Verify PIN Before Setting â€” Expect Fail",
           "request": {
             "method": "POST",
             "url": {
@@ -255,7 +319,7 @@
           }
         },
         {
-          "name": "Set PIN — Non-4-Digit — Expect Fail",
+          "name": "Set PIN â€” Non-4-Digit â€” Expect Fail",
           "request": {
             "method": "POST",
             "url": {
@@ -275,7 +339,7 @@
           }
         },
         {
-          "name": "Verify Correct PIN — Expect Success",
+          "name": "Verify Correct PIN â€” Expect Success",
           "request": {
             "method": "POST",
             "url": {
@@ -285,7 +349,7 @@
           }
         },
         {
-          "name": "Verify Wrong PIN — Expect Fail",
+          "name": "Verify Wrong PIN â€” Expect Fail",
           "request": {
             "method": "POST",
             "url": {
@@ -297,7 +361,7 @@
       ]
     },
     {
-      "name": "06 — KYC Document Management",
+      "name": "06 â€” KYC Document Management",
       "item": [
         {
           "name": "Upload Aadhaar Document",
@@ -387,10 +451,10 @@
       ]
     },
     {
-      "name": "07 — OTP",
+      "name": "07 â€” OTP",
       "item": [
         {
-          "name": "Generate OTP — TRANSACTION_AUTH",
+          "name": "Generate OTP â€” TRANSACTION_AUTH",
           "event": [{
             "listen": "test",
             "script": { "exec": [
@@ -421,7 +485,7 @@
           }
         },
         {
-          "name": "Verify Used OTP — Expect Fail",
+          "name": "Verify Used OTP â€” Expect Fail",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -433,7 +497,7 @@
           }
         },
         {
-          "name": "Generate OTP — TPIN_RESET",
+          "name": "Generate OTP â€” TPIN_RESET",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -459,10 +523,10 @@
       ]
     },
     {
-      "name": "08 — Loan Management",
+      "name": "08 â€” Loan Management",
       "item": [
         {
-          "name": "Credit ₹10,000 to Savings (for disbursement receipt)",
+          "name": "Credit â‚¹10,000 to Savings (for disbursement receipt)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -474,7 +538,7 @@
           }
         },
         {
-          "name": "Apply Personal Loan ₹5,00,000 @ 12% / 60 months",
+          "name": "Apply Personal Loan â‚¹5,00,000 @ 12% / 60 months",
           "event": [{
             "listen": "test",
             "script": { "exec": [
@@ -493,7 +557,7 @@
           }
         },
         {
-          "name": "Apply Home Loan ₹20,00,000 @ 8.5% / 240 months",
+          "name": "Apply Home Loan â‚¹20,00,000 @ 8.5% / 240 months",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -505,7 +569,7 @@
           }
         },
         {
-          "name": "Apply Loan Below Minimum — Expect Fail",
+          "name": "Apply Loan Below Minimum â€” Expect Fail",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -554,10 +618,10 @@
       ]
     },
     {
-      "name": "09 — NEFT / RTGS / IMPS",
+      "name": "09 â€” NEFT / RTGS / IMPS",
       "item": [
         {
-          "name": "NEFT Transfer ₹5,000 (Free)",
+          "name": "NEFT Transfer â‚¹5,000 (Free)",
           "event": [{
             "listen": "test",
             "script": { "exec": [
@@ -579,7 +643,7 @@
           }
         },
         {
-          "name": "RTGS Transfer ₹2,50,000 (₹24 Fee)",
+          "name": "RTGS Transfer â‚¹2,50,000 (â‚¹24 Fee)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -591,7 +655,7 @@
           }
         },
         {
-          "name": "RTGS Below ₹2,00,000 — Expect Fail",
+          "name": "RTGS Below â‚¹2,00,000 â€” Expect Fail",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -603,7 +667,7 @@
           }
         },
         {
-          "name": "IMPS Transfer ₹10,000 (₹15 Fee Cap)",
+          "name": "IMPS Transfer â‚¹10,000 (â‚¹15 Fee Cap)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -624,10 +688,10 @@
       ]
     },
     {
-      "name": "10 — UPI Payment",
+      "name": "10 â€” UPI Payment",
       "item": [
         {
-          "name": "UPI Payment ₹250 (Free)",
+          "name": "UPI Payment â‚¹250 (Free)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -639,7 +703,7 @@
           }
         },
         {
-          "name": "UPI Payment ₹1,000",
+          "name": "UPI Payment â‚¹1,000",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -651,7 +715,7 @@
           }
         },
         {
-          "name": "UPI Invalid ID Format — Expect Fail",
+          "name": "UPI Invalid ID Format â€” Expect Fail",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -665,10 +729,10 @@
       ]
     },
     {
-      "name": "11 — Fraud Detection",
+      "name": "11 â€” Fraud Detection",
       "item": [
         {
-          "name": "Credit Large Amount ₹6,00,000 (triggers LARGE_AMOUNT + ROUND_AMOUNT)",
+          "name": "Credit Large Amount â‚¹6,00,000 (triggers LARGE_AMOUNT + ROUND_AMOUNT)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -680,7 +744,7 @@
           }
         },
         {
-          "name": "Debit Round Amount ₹50,000 (triggers ROUND_AMOUNT)",
+          "name": "Debit Round Amount â‚¹50,000 (triggers ROUND_AMOUNT)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -761,7 +825,7 @@
       ]
     },
     {
-      "name": "12 — Account Statement & Summary",
+      "name": "12 â€” Account Statement & Summary",
       "item": [
         {
           "name": "Get Full Transaction List (all types)",
@@ -771,7 +835,7 @@
           }
         },
         {
-          "name": "Get Statement — May 2026",
+          "name": "Get Statement â€” May 2026",
           "request": {
             "method": "GET",
             "url": {
@@ -784,7 +848,7 @@
           }
         },
         {
-          "name": "Get Summary — May 2026 (credits, debits, net)",
+          "name": "Get Summary â€” May 2026 (credits, debits, net)",
           "request": {
             "method": "GET",
             "url": {
@@ -799,7 +863,7 @@
       ]
     },
     {
-      "name": "13 — Existing Features (Regression)",
+      "name": "13 â€” Existing Features (Regression)",
       "item": [
         {
           "name": "Get All Accounts",
@@ -831,14 +895,14 @@
           }
         },
         {
-          "name": "Get Transactions by Type — CREDIT",
+          "name": "Get Transactions by Type â€” CREDIT",
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/v1/transactions/type/CREDIT"
           }
         },
         {
-          "name": "Idempotency — Duplicate Request (same key)",
+          "name": "Idempotency â€” Duplicate Request (same key)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -850,7 +914,7 @@
           }
         },
         {
-          "name": "Idempotency — Same Key Again (expect idempotent response)",
+          "name": "Idempotency â€” Same Key Again (expect idempotent response)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
