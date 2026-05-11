@@ -1,0 +1,868 @@
+{
+  "info": {
+    "name": "Banking Microservices — Real-World Features",
+    "_postman_id": "banking-realworld-v2",
+    "description": "Complete API test collection for all real-world banking features. Set baseUrl variable to your VM IP e.g. http://192.168.1.100:30080",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",      "value": "http://localhost:30080" },
+    { "key": "accountNo",    "value": "ACC-0000000000" },
+    { "key": "accountNo2",   "value": "ACC-0000000001" },
+    { "key": "customerId",   "value": "1" },
+    { "key": "customerId2",  "value": "2" },
+    { "key": "loanId",       "value": "1" },
+    { "key": "docId",        "value": "1" },
+    { "key": "referenceNo",  "value": "TXN-20260511000000-000000" },
+    { "key": "otp",          "value": "000000" }
+  ],
+  "item": [
+    {
+      "name": "01 — Customer Management",
+      "item": [
+        {
+          "name": "Create Customer 1",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/customers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Ravi\",\n  \"lastName\": \"Kumar\",\n  \"gender\": \"MALE\",\n  \"address\": \"123 MG Road, Bengaluru\",\n  \"phoneNumber\": \"9876543210\",\n  \"email\": \"ravi.kumar@example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Customer 2",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/customers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Priya\",\n  \"lastName\": \"Sharma\",\n  \"gender\": \"FEMALE\",\n  \"address\": \"456 Link Road, Mumbai\",\n  \"phoneNumber\": \"9123456789\",\n  \"email\": \"priya.sharma@example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get All Customers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/customers"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 — Account Management",
+      "item": [
+        {
+          "name": "Create SAVINGS Account (₹500 min-bal, 3.5% interest)",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "var body = pm.response.json();",
+              "if (body.accountInfo && body.accountInfo.accountNumber) {",
+              "  pm.collectionVariables.set('accountNo', body.accountInfo.accountNumber);",
+              "  console.log('Set accountNo:', body.accountInfo.accountNumber);",
+              "}"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/accounts",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountType\": \"SAVINGS\",\n  \"customerId\": {{customerId}},\n  \"nomineeName\": \"Jane Doe\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create CURRENT Account (₹10L daily limit)",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "var body = pm.response.json();",
+              "if (body.accountInfo && body.accountInfo.accountNumber) {",
+              "  pm.collectionVariables.set('accountNo2', body.accountInfo.accountNumber);",
+              "}"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/accounts",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountType\": \"CURRENT\",\n  \"customerId\": {{customerId2}}\n}"
+            }
+          }
+        },
+        {
+          "name": "Create FIXED_DEPOSIT Account (7% interest)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/accounts",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountType\": \"FIXED_DEPOSIT\",\n  \"customerId\": 3,\n  \"maturityDate\": \"2027-05-11\",\n  \"nomineeName\": \"Ravi Kumar\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Account by Account Number",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/accounts/account/{{accountNo}}"
+          }
+        },
+        {
+          "name": "Credit ₹50,000 to Account",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/credit",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"{{accountNo}}\",\n  \"amount\": 50000\n}"
+            }
+          }
+        },
+        {
+          "name": "Close Account — Expect Fail (non-zero balance)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/accounts/{{accountNo}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 — Freeze & Unfreeze",
+      "item": [
+        {
+          "name": "Freeze Account",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/{{accountNo}}/freeze?reason=Suspicious+activity",
+              "query": [{ "key": "reason", "value": "Suspicious activity" }]
+            }
+          }
+        },
+        {
+          "name": "Debit Frozen Account — Expect Fail",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/debit",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"{{accountNo}}\",\n  \"amount\": 100\n}"
+            }
+          }
+        },
+        {
+          "name": "Unfreeze Account",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/v1/accounts/{{accountNo}}/unfreeze"
+          }
+        },
+        {
+          "name": "Unfreeze Active Account — Expect Fail",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/v1/accounts/{{accountNo}}/unfreeze"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 — Daily Transaction Limits",
+      "item": [
+        {
+          "name": "Set Daily Limit to ₹5,000",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/{{accountNo}}/limits?dailyLimit=5000",
+              "query": [{ "key": "dailyLimit", "value": "5000" }]
+            }
+          }
+        },
+        {
+          "name": "Debit ₹4,000 (within limit) — Should Pass",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/debit",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"{{accountNo}}\",\n  \"amount\": 4000\n}"
+            }
+          }
+        },
+        {
+          "name": "Debit ₹2,000 More — Expect Fail (limit exceeded)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/debit",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"{{accountNo}}\",\n  \"amount\": 2000\n}"
+            }
+          }
+        },
+        {
+          "name": "Breach Min Balance — Expect Fail",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/debit",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"{{accountNo}}\",\n  \"amount\": 50000\n}"
+            }
+          }
+        },
+        {
+          "name": "Reset Daily Limit to ₹1,00,000",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/{{accountNo}}/limits?dailyLimit=100000",
+              "query": [{ "key": "dailyLimit", "value": "100000" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 — TPIN (4-digit PIN)",
+      "item": [
+        {
+          "name": "Verify PIN Before Setting — Expect Fail",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/{{accountNo}}/pin/verify?pin=1234",
+              "query": [{ "key": "pin", "value": "1234" }]
+            }
+          }
+        },
+        {
+          "name": "Set PIN — Non-4-Digit — Expect Fail",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/{{accountNo}}/pin/set?pin=12",
+              "query": [{ "key": "pin", "value": "12" }]
+            }
+          }
+        },
+        {
+          "name": "Set PIN 1234",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/{{accountNo}}/pin/set?pin=1234",
+              "query": [{ "key": "pin", "value": "1234" }]
+            }
+          }
+        },
+        {
+          "name": "Verify Correct PIN — Expect Success",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/{{accountNo}}/pin/verify?pin=1234",
+              "query": [{ "key": "pin", "value": "1234" }]
+            }
+          }
+        },
+        {
+          "name": "Verify Wrong PIN — Expect Fail",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/accounts/{{accountNo}}/pin/verify?pin=9999",
+              "query": [{ "key": "pin", "value": "9999" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 — KYC Document Management",
+      "item": [
+        {
+          "name": "Upload Aadhaar Document",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "var body = pm.response.json();",
+              "if (body.id) pm.collectionVariables.set('docId', body.id);"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/kyc/documents/upload",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": {{customerId}},\n  \"documentType\": \"AADHAAR\",\n  \"documentNumber\": \"1234-5678-9012\",\n  \"documentUrl\": \"/docs/aadhaar-1.jpg\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Upload PAN Document",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/kyc/documents/upload",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": {{customerId}},\n  \"documentType\": \"PAN\",\n  \"documentNumber\": \"ABCDE1234F\",\n  \"documentUrl\": \"/docs/pan-1.jpg\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Check KYC Status (expect UNDER_REVIEW)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/kyc/{{customerId}}/status"
+          }
+        },
+        {
+          "name": "Admin: Verify Aadhaar",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/kyc/documents/{{docId}}/review?status=VERIFIED",
+              "query": [{ "key": "status", "value": "VERIFIED" }]
+            }
+          }
+        },
+        {
+          "name": "Admin: Verify PAN (triggers VERIFIED status)",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/kyc/documents/2/review?status=VERIFIED",
+              "query": [{ "key": "status", "value": "VERIFIED" }]
+            }
+          }
+        },
+        {
+          "name": "Check KYC Status (expect VERIFIED)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/kyc/{{customerId}}/status"
+          }
+        },
+        {
+          "name": "Admin: Reject Document",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/kyc/documents/3/review?status=REJECTED&rejectionReason=Blurry+image",
+              "query": [
+                { "key": "status", "value": "REJECTED" },
+                { "key": "rejectionReason", "value": "Blurry image" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All KYC Documents for Customer",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/kyc/{{customerId}}/documents"
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 — OTP",
+      "item": [
+        {
+          "name": "Generate OTP — TRANSACTION_AUTH",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "var body = pm.response.json();",
+              "if (body.otp) pm.collectionVariables.set('otp', body.otp);"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/otp/generate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": {{customerId}},\n  \"purpose\": \"TRANSACTION_AUTH\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify Correct OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/otp/verify",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": {{customerId}},\n  \"otp\": \"{{otp}}\",\n  \"purpose\": \"TRANSACTION_AUTH\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify Used OTP — Expect Fail",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/otp/verify",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": {{customerId}},\n  \"otp\": \"{{otp}}\",\n  \"purpose\": \"TRANSACTION_AUTH\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Generate OTP — TPIN_RESET",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/otp/generate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": {{customerId}},\n  \"purpose\": \"TPIN_RESET\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify Wrong OTP (attempt 1 of 3)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/otp/verify",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": {{customerId}},\n  \"otp\": \"000000\",\n  \"purpose\": \"TPIN_RESET\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 — Loan Management",
+      "item": [
+        {
+          "name": "Credit ₹10,000 to Savings (for disbursement receipt)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/credit",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"{{accountNo}}\",\n  \"amount\": 10000\n}"
+            }
+          }
+        },
+        {
+          "name": "Apply Personal Loan ₹5,00,000 @ 12% / 60 months",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "var body = pm.response.json();",
+              "if (body.id) pm.collectionVariables.set('loanId', body.id);"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/loans/apply",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": {{customerId}},\n  \"principalAmount\": 500000,\n  \"tenureMonths\": 60,\n  \"loanType\": \"PERSONAL\",\n  \"linkedSavingsAccount\": \"{{accountNo}}\",\n  \"nomineeName\": \"Jane Doe\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Apply Home Loan ₹20,00,000 @ 8.5% / 240 months",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/loans/apply",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": {{customerId2}},\n  \"principalAmount\": 2000000,\n  \"tenureMonths\": 240,\n  \"loanType\": \"HOME\",\n  \"linkedSavingsAccount\": \"{{accountNo2}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Apply Loan Below Minimum — Expect Fail",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/loans/apply",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": {{customerId}},\n  \"principalAmount\": 5000,\n  \"tenureMonths\": 12,\n  \"loanType\": \"PERSONAL\",\n  \"linkedSavingsAccount\": \"{{accountNo}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Customer Loans",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/loans/customer/{{customerId}}"
+          }
+        },
+        {
+          "name": "Get EMI Repayment Schedule (60 rows)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/loans/{{loanId}}/schedule"
+          }
+        },
+        {
+          "name": "Pay First EMI",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/loans/{{loanId}}/pay-emi"
+          }
+        },
+        {
+          "name": "Pay Second EMI",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/loans/{{loanId}}/pay-emi"
+          }
+        },
+        {
+          "name": "Get Overdue Loans (Admin)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/loans/overdue"
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 — NEFT / RTGS / IMPS",
+      "item": [
+        {
+          "name": "NEFT Transfer ₹5,000 (Free)",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "var body = pm.response.json();",
+              "if (body.accountInfo && body.accountInfo.message) {",
+              "  var match = body.accountInfo.message.match(/Reference: (TXN-[^ |]+)/);",
+              "  if (match) pm.collectionVariables.set('referenceNo', match[1]);",
+              "}"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/neft",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccount\": \"{{accountNo}}\",\n  \"beneficiaryAccountNumber\": \"9876543210\",\n  \"beneficiaryName\": \"John Doe\",\n  \"ifscCode\": \"HDFC0001234\",\n  \"bankName\": \"HDFC Bank\",\n  \"amount\": 5000,\n  \"channel\": \"NEFT\",\n  \"remarks\": \"Rent payment\"\n}"
+            }
+          }
+        },
+        {
+          "name": "RTGS Transfer ₹2,50,000 (₹24 Fee)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/neft",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccount\": \"{{accountNo}}\",\n  \"beneficiaryAccountNumber\": \"1111222233334444\",\n  \"beneficiaryName\": \"Corp Ltd\",\n  \"ifscCode\": \"ICIC0001111\",\n  \"bankName\": \"ICICI Bank\",\n  \"amount\": 250000,\n  \"channel\": \"RTGS\",\n  \"remarks\": \"Vendor payment\"\n}"
+            }
+          }
+        },
+        {
+          "name": "RTGS Below ₹2,00,000 — Expect Fail",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/neft",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccount\": \"{{accountNo}}\",\n  \"beneficiaryAccountNumber\": \"9999999999\",\n  \"beneficiaryName\": \"Test\",\n  \"ifscCode\": \"TEST0000001\",\n  \"bankName\": \"Test Bank\",\n  \"amount\": 50000,\n  \"channel\": \"RTGS\"\n}"
+            }
+          }
+        },
+        {
+          "name": "IMPS Transfer ₹10,000 (₹15 Fee Cap)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/neft",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccount\": \"{{accountNo}}\",\n  \"beneficiaryAccountNumber\": \"5555666677778888\",\n  \"beneficiaryName\": \"Sita Ram\",\n  \"ifscCode\": \"SBIN0005678\",\n  \"bankName\": \"SBI\",\n  \"amount\": 10000,\n  \"channel\": \"IMPS\",\n  \"remarks\": \"Utility bill\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Transaction by Reference Number",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/transactions/ref/{{referenceNo}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 — UPI Payment",
+      "item": [
+        {
+          "name": "UPI Payment ₹250 (Free)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/upi",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccount\": \"{{accountNo}}\",\n  \"upiId\": \"john@upi\",\n  \"amount\": 250,\n  \"remarks\": \"Splitting dinner\"\n}"
+            }
+          }
+        },
+        {
+          "name": "UPI Payment ₹1,000",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/upi",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccount\": \"{{accountNo}}\",\n  \"upiId\": \"merchant@ybl\",\n  \"amount\": 1000,\n  \"remarks\": \"Online shopping\"\n}"
+            }
+          }
+        },
+        {
+          "name": "UPI Invalid ID Format — Expect Fail",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/upi",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccount\": \"{{accountNo}}\",\n  \"upiId\": \"not-a-valid-upi-id\",\n  \"amount\": 100\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 — Fraud Detection",
+      "item": [
+        {
+          "name": "Credit Large Amount ₹6,00,000 (triggers LARGE_AMOUNT + ROUND_AMOUNT)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/credit",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"{{accountNo}}\",\n  \"amount\": 600000\n}"
+            }
+          }
+        },
+        {
+          "name": "Debit Round Amount ₹50,000 (triggers ROUND_AMOUNT)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/debit",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"{{accountNo}}\",\n  \"amount\": 50000\n}"
+            }
+          }
+        },
+        {
+          "name": "Rapid Debit 1 of 6 (velocity test)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/debit",
+            "body": { "mode": "raw", "raw": "{\n  \"accountNumber\": \"{{accountNo}}\",\n  \"amount\": 111\n}" }
+          }
+        },
+        {
+          "name": "Rapid Debit 2 of 6",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/debit",
+            "body": { "mode": "raw", "raw": "{\n  \"accountNumber\": \"{{accountNo}}\",\n  \"amount\": 111\n}" }
+          }
+        },
+        {
+          "name": "Rapid Debit 3 of 6",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/debit",
+            "body": { "mode": "raw", "raw": "{\n  \"accountNumber\": \"{{accountNo}}\",\n  \"amount\": 111\n}" }
+          }
+        },
+        {
+          "name": "Rapid Debit 4 of 6",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/debit",
+            "body": { "mode": "raw", "raw": "{\n  \"accountNumber\": \"{{accountNo}}\",\n  \"amount\": 111\n}" }
+          }
+        },
+        {
+          "name": "Rapid Debit 5 of 6",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/debit",
+            "body": { "mode": "raw", "raw": "{\n  \"accountNumber\": \"{{accountNo}}\",\n  \"amount\": 111\n}" }
+          }
+        },
+        {
+          "name": "Rapid Debit 6 of 6 (expect fraudFlag=true in response record)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/debit",
+            "body": { "mode": "raw", "raw": "{\n  \"accountNumber\": \"{{accountNo}}\",\n  \"amount\": 111\n}" }
+          }
+        },
+        {
+          "name": "View Fraud-Flagged Transactions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/fraud/flagged?page=0&size=20",
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 — Account Statement & Summary",
+      "item": [
+        {
+          "name": "Get Full Transaction List (all types)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/transactions/account/{{accountNo}}"
+          }
+        },
+        {
+          "name": "Get Statement — May 2026",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/account/{{accountNo}}/statement?from=2026-05-01T00:00:00&to=2026-05-31T23:59:59",
+              "query": [
+                { "key": "from", "value": "2026-05-01T00:00:00" },
+                { "key": "to",   "value": "2026-05-31T23:59:59" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Summary — May 2026 (credits, debits, net)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/account/{{accountNo}}/summary?from=2026-05-01T00:00:00&to=2026-05-31T23:59:59",
+              "query": [
+                { "key": "from", "value": "2026-05-01T00:00:00" },
+                { "key": "to",   "value": "2026-05-31T23:59:59" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 — Existing Features (Regression)",
+      "item": [
+        {
+          "name": "Get All Accounts",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/accounts" }
+        },
+        {
+          "name": "Internal Transfer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/transfer",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccount\": \"{{accountNo}}\",\n  \"toAccount\": \"{{accountNo2}}\",\n  \"amount\": 500\n}"
+            }
+          }
+        },
+        {
+          "name": "Get All Transactions (paginated)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions?page=0&size=20",
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Transactions by Type — CREDIT",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/transactions/type/CREDIT"
+          }
+        },
+        {
+          "name": "Idempotency — Duplicate Request (same key)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/credit",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"{{accountNo}}\",\n  \"amount\": 100,\n  \"idempotencyKey\": \"test-key-00001\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Idempotency — Same Key Again (expect idempotent response)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/transactions/credit",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"{{accountNo}}\",\n  \"amount\": 100,\n  \"idempotencyKey\": \"test-key-00001\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+
