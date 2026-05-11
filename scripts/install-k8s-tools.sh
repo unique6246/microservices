@@ -108,7 +108,13 @@ else
   info "Waiting for k3s to become ready..."
   sleep 10
   for i in {1..24}; do
-    k3s kubectl get nodes 2>/dev/null | grep -q "Ready" && break
+    if [ -n "${SUDO_USER:-}" ]; then
+      sudo -u "$SUDO_USER" KUBECONFIG=/etc/rancher/k3s/k3s.yaml \
+        k3s kubectl get nodes 2>/dev/null | grep -q "Ready" && break
+    else
+      KUBECONFIG=/etc/rancher/k3s/k3s.yaml \
+        k3s kubectl get nodes 2>/dev/null | grep -q "Ready" && break
+    fi
     echo -n "."
     sleep 5
   done
@@ -230,7 +236,11 @@ echo "  Helm       : $(helm version --short 2>/dev/null)"
 echo ""
 echo "  Local Registry : http://localhost:5000"
 echo ""
-kubectl get nodes
+if [ -n "${SUDO_USER:-}" ]; then
+  sudo -u "$SUDO_USER" KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl get nodes
+else
+  KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl get nodes
+fi
 echo ""
 warn "IMPORTANT: Run the following to activate kubectl in your current shell:"
 echo ""
